@@ -122,7 +122,7 @@ a{color:inherit}
 .tab:focus-visible{outline:2px solid var(--ink);outline-offset:-3px}
 
 /* ---------- layout ---------- */
-main{padding:22px 0 90px}
+main{padding:22px 0 96px}
 .panel[hidden]{display:none}
 .grid{display:grid;gap:14px}
 .g2{grid-template-columns:1fr 1fr}
@@ -245,7 +245,6 @@ table.data tr.hl:hover{background:color-mix(in srgb,var(--s1) 12%,transparent)}
 .phase h4{margin:0 0 3px;font-size:14.5px;font-weight:600}
 .phase p{margin:0;font-size:13px;color:var(--ink-2)}
 
-.foot{border-top:1px solid var(--rule);background:var(--surface);padding:18px 0;font-size:12.5px;color:var(--ink-3)}
 
 @media(max-width:700px){
   .decisions li{grid-template-columns:24px 1fr}
@@ -287,11 +286,6 @@ table.data tr.hl:hover{background:color-mix(in srgb,var(--s1) 12%,transparent)}
 <div class="tabs"><div class="wrap"><div class="tabs-in" role="tablist" id="tabs"></div></div></div>
 
 <main><div class="wrap" id="panels"></div></main>
-
-<div class="foot"><div class="wrap">
-  <strong>หมายเหตุ:</strong> หน้านี้เป็น <em>mockup เชิงแนวคิด</em> ตัวเลขทั้งหมดเป็นข้อมูลจำลองที่สร้างขึ้นให้สอดคล้องกันเชิงสมดุลมวลน้ำ
-  เพื่อสาธิตรูปแบบการแสดงผลและตรรกะการตัดสินใจเท่านั้น ยังไม่ได้เชื่อมต่อกับผลลัพธ์จริงจากแบบจำลอง WEAP ลุ่มน้ำแม่กลอง
-</div></div>
 
 <button class="cop-btn" id="copBtn" aria-expanded="false" aria-controls="cop">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M5.6 5.6l2.1 2.1M3 12h3M18 12h3M16.3 7.7l2.1-2.1"/><rect x="6" y="10" width="12" height="9" rx="2.5"/><path d="M10 14v1.5M14 14v1.5"/></svg>
@@ -746,30 +740,6 @@ function chartSchematic(){
   return box;
 }
 
-/* ---------- 10. สถาปัตยกรรมระบบ ---------- */
-const ARCH=[
-  {t:'ชั้นข้อมูลนำเข้า', s:'Data Layer', items:['โทรมาตรระดับน้ำ–ปริมาณน้ำ (ชป./สทนช.)','ฝนกริดรายชั่วโมง (TMD, GSMaP)','ข้อมูลอ่างเก็บน้ำรายวัน 2 เขื่อนหลัก','สถานีความเค็ม–ระดับน้ำขึ้นลงอัตโนมัติ','ภาพดาวเทียม NDVI / พื้นที่เพาะปลูก (GISTDA)','ข้อมูลประชากร–อุตสาหกรรม–เศรษฐกิจ']},
-  {t:'ชั้นแบบจำลอง', s:'WEAP Core', items:['WEAP ลุ่มน้ำแม่กลอง (โครงข่าย + Demand Sites)','WEAP API / Python สำหรับรันอัตโนมัติ','ชุดสถานการณ์อ้างอิง (BAU / แผนแม่บท)','การสอบเทียบ–ตรวจพิสูจน์รายปี']},
-  {t:'ชั้นปัญญาประดิษฐ์', s:'AI Layer', items:['พยากรณ์น้ำท่า–ฝน (LSTM / Transformer)','พยากรณ์ความต้องการน้ำ (LightGBM + NDVI)','พยากรณ์ความเค็ม (LSTM + สัญญาณน้ำขึ้นลง)','Surrogate model แทน WEAP (เร็วขึ้น ~4,200 เท่า)','Multi-objective optimization (NSGA-II)','LLM Copilot แบบ RAG บนแผนแม่บท + ผลจำลอง']},
-  {t:'ชั้นการตัดสินใจ', s:'Decision Layer', items:['6 มุมมองสำหรับผู้บริหารและศูนย์ปฏิบัติการ','ระบบแจ้งเตือนอัตโนมัติตามเกณฑ์','บันทึกเหตุผลการตัดสินใจ (Decision log)','รายงานเสนอคณะกรรมการลุ่มน้ำ']}
-];
-function chartArch(){
-  const wrap=document.createElement('div');
-  wrap.style.display='grid';wrap.style.gap='0';
-  ARCH.forEach((L,i)=>{
-    const row=document.createElement('div');
-    row.style.cssText='display:grid;grid-template-columns:150px 1fr;gap:16px;padding:15px 0;border-bottom:'+(i<3?'1px solid var(--rule)':'0');
-    row.innerHTML=`<div>
-        <div style="font-family:'Bai Jamjuree',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.09em;color:var(--ink-3);text-transform:uppercase">ชั้นที่ ${i+1} · ${L.s}</div>
-        <div style="font-family:'Bai Jamjuree',sans-serif;font-size:15px;font-weight:600;margin-top:2px">${L.t}</div>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:7px">${L.items.map(x=>
-        `<span style="font-size:12.5px;background:var(--surface-2);border:1px solid var(--rule);border-radius:4px;padding:5px 10px;color:var(--ink-2)">${x}</span>`).join('')}</div>`;
-    wrap.appendChild(row);
-  });
-  return wrap;
-}
-
 /* ============================================================
    ค่าที่คำนวณจากข้อมูลข้างต้น (ตรวจสอบสมดุลได้)
    ============================================================ */
@@ -1124,88 +1094,6 @@ function panelSalinity(){
   </div>`;
 }
 
-/* ---------- แผงที่ 6: แนวคิดและสถาปัตยกรรม ---------- */
-function panelConcept(){
-  const principles=[
-    ['จบที่การตัดสินใจ ไม่ใช่จบที่กราฟ','ทุกมุมมองต้องตอบให้ได้ว่า “สัปดาห์นี้ต้องทำอะไร” หน้าแรกจึงเป็นรายการสิ่งที่ต้องตัดสินใจ ไม่ใช่แผนที่หรือกราฟรวม'],
-    ['AI ต้องบอกความไม่แน่นอนเสมอ','ทุกค่าพยากรณ์มาพร้อมช่วงความเชื่อมั่น และทุกข้อเสนอมีระดับความเชื่อมั่นกำกับ ผู้ตัดสินใจจึงรู้ว่าควรเชื่อมากน้อยเพียงใด'],
-    ['แยก “เร็ว” ออกจาก “แม่น”','ใช้ surrogate model ค้นหาทางเลือกนับหมื่นชุดภายในไม่กี่วินาที แล้วนำเฉพาะทางเลือกที่ดีที่สุดกลับไปตรวจสอบซ้ำด้วย WEAP เต็มรูปแบบก่อนเสนอ'],
-    ['สีบนหน้าจอนี้มีความหมายเสมอ','ส่วนประกอบของหน้าจอใช้โทนเทาล้วน สีจะปรากฏเฉพาะเมื่อเป็นข้อมูลหรือเป็นสถานะเท่านั้น ผู้ใช้จึงกวาดสายตาหาสิ่งผิดปกติได้ทันที'],
-    ['คนอนุมัติ ไม่ใช่ AI','ระบบทำหน้าที่เสนอและอธิบาย การอนุมัติเป็นของคณะกรรมการลุ่มน้ำ และทุกการตัดสินใจถูกบันทึกพร้อมเหตุผลไว้ย้อนดูได้'],
-    ['ตัวชี้วัดต้องผูกกับแผนแม่บท','ตัวชี้วัดบนหน้าจอเป็นตัวเดียวกับที่ใช้ติดตามแผนแม่บทลุ่มน้ำแม่กลอง เพื่อไม่ให้เกิดตัวเลขสองชุดที่ขัดกัน']
-  ];
-  const map=[
-    ['น้ำขาดแคลน (ล้าน ลบ.ม.)','Unmet Demand','ผลรวมรายเดือนของทุก Demand Site'],
-    ['ความเพียงพอ (%)','Demand Site Coverage','Supply Delivered ÷ Water Demand × 100'],
-    ['ความน่าเชื่อถือ (%)','Reliability','สัดส่วนเดือนที่ Coverage เท่ากับ 100%'],
-    ['ความรุนแรงเมื่อขาดแคลน','Vulnerability','ค่าเฉลี่ยการขาดแคลนเฉพาะเดือนที่ขาด'],
-    ['น้ำต้นทุน (ล้าน ลบ.ม.)','Reservoir Storage Volume','ผลรวม 2 เขื่อนหลัก หักปริมาตรก้นอ่าง'],
-    ['การไหลในลำน้ำ (ลบ.ม./วิ)','Streamflow','ค่า ณ จุดควบคุมที่กำหนดไว้ในโครงข่าย'],
-    ['ความเค็ม (กรัม/ลิตร)','Streamflow + แบบจำลอง AI','WEAP ให้ปริมาณน้ำ แบบจำลอง AI แปลงเป็นความเค็ม'],
-    ['ผลิตภาพการใช้น้ำ (บาท/ลบ.ม.)','Supply Delivered','คูณค่าทางเศรษฐกิจรายกิจกรรม (คำนวณนอก WEAP)'],
-    ['ความเสมอภาคระหว่างโซน (Gini)','Coverage รายโซน','คำนวณนอก WEAP จากค่า Coverage ทุกโซน']
-  ];
-  const phases=[
-    ['ระยะที่ 1 · เดือน 0–4','วางรากฐานข้อมูลและมุมมองพื้นฐาน','จัดทำท่อข้อมูลอัตโนมัติจากโทรมาตรและอ่างเก็บน้ำ เชื่อม WEAP ผ่าน API ให้รันได้อัตโนมัติ และเปิดใช้ 2 มุมมองแรก คือ ภาพรวมลุ่มน้ำ และความต้องการน้ำ โดยใช้ผลจำลองที่มีอยู่แล้ว'],
-    ['ระยะที่ 2 · เดือน 4–9','เพิ่มความสามารถในการพยากรณ์','ฝึกและตรวจพิสูจน์แบบจำลองพยากรณ์น้ำท่า ความต้องการน้ำภาคเกษตร และความเค็มรายวัน พร้อมกำหนดเกณฑ์การแจ้งเตือนอัตโนมัติร่วมกับศูนย์ปฏิบัติการ'],
-    ['ระยะที่ 3 · เดือน 9–15','เปิดห้องทดลองทางเลือก','สร้าง surrogate model ของ WEAP และระบบหาค่าเหมาะที่สุดหลายวัตถุประสงค์ เพื่อให้คณะกรรมการเปรียบเทียบทางเลือกได้แบบทันที พร้อมกลไกตรวจสอบซ้ำด้วย WEAP'],
-    ['ระยะที่ 4 · เดือน 15–20','ขยายผลและถ่ายทอด','เชื่อมต่อกับศูนย์ปฏิบัติการน้ำ อบรมผู้ใช้ทั้งสองกลุ่ม กำหนดกระบวนการทบทวนและสอบเทียบแบบจำลองประจำปี และส่งมอบคู่มือการใช้งาน']
-  ];
-  const risks=[
-    'ข้อมูลโทรมาตรขาดหายเป็นเรื่องปกติ — ต้องมีการเติมค่าที่ตรวจสอบได้ และแสดงดัชนีคุณภาพข้อมูลบนหน้าจอ ไม่ใช่ซ่อนไว้',
-    'แบบจำลองพยากรณ์เสื่อมความแม่นยำตามเวลา — ต้องมีการตรวจสอบย้อนหลังอัตโนมัติทุกเดือน และสอบเทียบใหม่อย่างน้อยปีละครั้ง',
-    'การหาค่าเหมาะที่สุดอาจผลักภาระไปยังพื้นที่กลุ่มเดิมซ้ำ ๆ — จึงต้องมีตัวชี้วัดความเสมอภาค (Gini ของ Coverage) เป็นเงื่อนไขบังคับ ไม่ใช่ตัวเลือก',
-    'ทางเลือกที่ AI เสนอต้องผ่านเวทีผู้มีส่วนได้ส่วนเสียก่อนนำไปปฏิบัติ ระบบนี้เป็นเครื่องมือประกอบการหารือ ไม่ใช่ผู้ตัดสิน',
-    'ต้องกำหนดสิทธิ์การเข้าถึงและการเปิดเผยข้อมูลให้ชัดเจน โดยเฉพาะข้อมูลรายแปลงและข้อมูลผู้ใช้น้ำรายราย'
-  ];
-  return `
-  <div class="plate" style="margin-bottom:14px">
-    <p class="eyebrow">หลักคิดในการออกแบบ</p>
-    <h3>ข้อตกลง 6 ข้อที่ใช้ตัดสินทุกรายละเอียดบนหน้าจอ</h3>
-    <div class="grid g3" style="margin-top:13px">
-      ${principles.map(p=>`<div class="rec"><h4>${p[0]}</h4><p>${p[1]}</p></div>`).join('')}
-    </div>
-  </div>
-
-  <div class="plate" style="margin-bottom:14px">
-    <p class="eyebrow">สถาปัตยกรรมระบบ</p>
-    <h3>จากข้อมูลดิบถึงการตัดสินใจ — 4 ชั้น</h3>
-    <p class="note">หัวใจของการออกแบบคือชั้นที่ 3 ซึ่งไม่ได้แทนที่ WEAP แต่ทำให้ WEAP ถูกใช้ได้เร็วพอสำหรับการตัดสินใจรายสัปดาห์</p>
-    <div id="c-arch"></div>
-  </div>
-
-  <div class="grid g2" style="margin-bottom:14px">
-    <div class="plate">
-      <p class="eyebrow">การเชื่อมโยงข้อมูล</p>
-      <h3>ตัวชี้วัดบนหน้าจอ มาจากผลลัพธ์ WEAP ตัวใด</h3>
-      <p class="note">ทุกตัวเลขต้องสาวกลับไปยังผลลัพธ์ของแบบจำลองได้เสมอ</p>
-      <div class="tbl-scroll"><table class="data"><thead><tr>
-        <th>ตัวชี้วัด</th><th>ผลลัพธ์ WEAP</th><th>วิธีคำนวณ</th></tr></thead><tbody>
-        ${map.map(r=>`<tr><td>${r[0]}</td><td style="text-align:left;font-family:'IBM Plex Mono',monospace;font-size:12px">${r[1]}</td>
-          <td style="text-align:left;white-space:normal;color:var(--ink-2);font-size:12px">${r[2]}</td></tr>`).join('')}
-      </tbody></table></div>
-    </div>
-    <div class="plate">
-      <p class="eyebrow">ข้อควรระวัง</p>
-      <h3>สิ่งที่ต้องออกแบบรับมือตั้งแต่ต้น</h3>
-      <p class="note">ประเด็นเหล่านี้ทำให้ระบบลักษณะนี้ล้มเหลวได้บ่อยกว่าปัญหาทางเทคนิค</p>
-      <ul class="prose" style="margin-top:11px;padding-left:20px">
-        ${risks.map(r=>`<li style="margin-bottom:9px">${r}</li>`).join('')}
-      </ul>
-    </div>
-  </div>
-
-  <div class="plate">
-    <p class="eyebrow">แผนการพัฒนา</p>
-    <h3>ลำดับการพัฒนา 4 ระยะ ภายใน 20 เดือน</h3>
-    <p class="note">แต่ละระยะส่งมอบสิ่งที่ใช้งานได้จริง ไม่ต้องรอให้ครบทุกส่วนจึงจะเริ่มใช้</p>
-    <div style="margin-top:6px">
-      ${phases.map(p=>`<div class="phase"><span class="pn">${p[0]}</span>
-        <div><h4>${p[1]}</h4><p>${p[2]}</p></div></div>`).join('')}
-    </div>
-  </div>`;
-}
-
 /* ============================================================
    ประกอบหน้าจอ
    ============================================================ */
@@ -1214,8 +1102,7 @@ const TABS=[
   {n:'ความต้องการ & น้ำขาดแคลน', build:panelDemand},
   {n:'พยากรณ์ด้วย AI',       build:panelForecast},
   {n:'ห้องทดลองทางเลือก',    build:panelScenario},
-  {n:'น้ำเค็ม & ระบบนิเวศ',   build:panelSalinity},
-  {n:'แนวคิด & สถาปัตยกรรม', build:panelConcept}
+  {n:'น้ำเค็ม & ระบบนิเวศ',   build:panelSalinity}
 ];
 /* ============================================================
    ชั้นเชื่อมต่อข้อมูล (Data layer)
@@ -1300,12 +1187,11 @@ async function build(){
   document.getElementById('c-trade').appendChild(chartTradeoff());
   document.getElementById('c-sal').appendChild(chartSalinity());
   document.getElementById('c-iso').appendChild(chartIsohaline());
-  document.getElementById('c-arch').appendChild(chartArch());
   buildDemandTable();
   wireDemandToggle();
   wireScenario();
   wireCopilot();
-  const h=location.hash.match(/^#t([0-5])$/);   /* เปิดแท็บตามลิงก์ที่ส่งต่อกันได้ */
+  const h=location.hash.match(/^#t([0-4])$/);   /* เปิดแท็บตามลิงก์ที่ส่งต่อกันได้ */
   if(h) select(+h[1]);
   if(REFRESH_MINUTES>0) setInterval(()=>location.reload(), REFRESH_MINUTES*60000);
 }
