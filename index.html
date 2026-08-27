@@ -1,1 +1,1433 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Dashboard สนับสนุนการตัดสินใจจัดสรรน้ำลุ่มน้ำแม่กลอง เชื่อมผลลัพธ์แบบจำลอง WEAP เข้ากับการพยากรณ์และการหาค่าเหมาะที่สุดด้วย AI">
+<meta property="og:title" content="ศูนย์ตัดสินใจจัดสรรน้ำแม่กลอง">
+<meta property="og:description" content="Mae Klong Water Allocation DSS · WEAP + AI">
+<meta property="og:type" content="website">
+<title>ศูนย์ตัดสินใจจัดสรรน้ำแม่กลอง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* รีเซ็ตขั้นต่ำ (บนหน้า Artifact ตัวจัดการใส่ให้อยู่แล้ว ไฟล์นี้จึงต้องใส่เอง) */
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0}
+  img,svg{max-width:100%}
+  button,input,select,textarea{font:inherit;color:inherit}
+</style>
+</head>
+<body>
+<style>
+:root{
+  color-scheme: light;
+  --ground:#eaeef1; --surface:#ffffff; --surface-2:#f4f7f9; --surface-3:#e8edf1;
+  --ink:#0d1418; --ink-2:#44525a; --ink-3:#75838b;
+  --rule:#dae1e6; --rule-2:#bfc9d0; --chip:#e5eaee;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --good-ink:#0a7a0a; --warn-ink:#8a6000; --serious-ink:#a8492a; --crit-ink:#b02c2c;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300;
+  --band:rgba(42,120,214,.16); --band-2:rgba(42,120,214,.10);
+  --grid:#e7ecf0; --axis:#c6d0d7;
+  --shadow:0 1px 2px rgba(13,20,24,.05), 0 8px 24px -16px rgba(13,20,24,.28);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#090e11; --surface:#151d21; --surface-2:#1b252a; --surface-3:#223037;
+    --ink:#eaf1f4; --ink-2:#9fb0b8; --ink-3:#6f8088;
+    --rule:#25333a; --rule-2:#38494f; --chip:#223036;
+    --good-ink:#3cc23c; --warn-ink:#fab219; --serious-ink:#ec835a; --crit-ink:#e56a6a;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+    --band:rgba(57,135,229,.22); --band-2:rgba(57,135,229,.12);
+    --grid:#202c32; --axis:#33454c;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.9);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#090e11; --surface:#151d21; --surface-2:#1b252a; --surface-3:#223037;
+  --ink:#eaf1f4; --ink-2:#9fb0b8; --ink-3:#6f8088;
+  --rule:#25333a; --rule-2:#38494f; --chip:#223036;
+  --good-ink:#3cc23c; --warn-ink:#fab219; --serious-ink:#ec835a; --crit-ink:#e56a6a;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+  --band:rgba(57,135,229,.22); --band-2:rgba(57,135,229,.12);
+  --grid:#202c32; --axis:#33454c;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.9);
+}
 
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans Thai","Noto Sans Thai",system-ui,sans-serif;
+  font-size:15px; line-height:1.62; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,.disp{font-family:"Bai Jamjuree","IBM Plex Sans Thai",system-ui,sans-serif;text-wrap:balance}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+a{color:inherit}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 18px}
+
+/* ---------- masthead ---------- */
+.mast{border-bottom:1px solid var(--rule);background:var(--surface);position:relative;z-index:5}
+.mast-in{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;padding:16px 0 14px}
+.brand{display:flex;gap:13px;align-items:center;min-width:0}
+.seal{width:40px;height:40px;flex:0 0 40px}
+.brand h1{margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em;line-height:1.25}
+.brand .sub{font-size:12.5px;color:var(--ink-3);letter-spacing:.02em}
+.mast-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mock{font-family:"Bai Jamjuree",sans-serif;font-size:11px;font-weight:600;letter-spacing:.08em;
+  padding:5px 10px;border:1px dashed var(--rule-2);border-radius:3px;color:var(--ink-3);white-space:nowrap}
+.stamp{font-size:12px;color:var(--ink-2);white-space:nowrap}
+.stamp b{font-weight:600;color:var(--ink)}
+
+/* ---------- instrument strip ---------- */
+.strip{background:var(--surface-2);border-bottom:1px solid var(--rule)}
+.strip-in{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule)}
+.tile{background:var(--surface-2);padding:14px 16px 15px;min-width:0}
+.tile .lab{font-family:"Bai Jamjuree",sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.09em;
+  color:var(--ink-3);text-transform:uppercase;display:block;margin-bottom:3px}
+.tile .val{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  font-size:27px;font-weight:500;letter-spacing:-.02em;line-height:1.15}
+.tile .val small{font-size:13px;font-weight:400;color:var(--ink-2);letter-spacing:0}
+.tile .foot{font-size:12px;color:var(--ink-2);margin-top:3px;line-height:1.75}
+.tile .foot .pill{margin-top:3px}
+.spark{display:block;margin-top:6px;width:100%;height:22px}
+
+/* ---------- status pills ---------- */
+.pill{display:inline-flex;align-items:center;gap:5px;font-family:"Bai Jamjuree",sans-serif;
+  font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:2px 8px 2px 6px;border-radius:3px;
+  border:1px solid;white-space:nowrap}
+.pill svg{width:11px;height:11px;flex:0 0 11px}
+.p-good{color:var(--good-ink);border-color:color-mix(in srgb,var(--good) 40%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)}
+.p-warn{color:var(--warn-ink);border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:color-mix(in srgb,var(--warn) 13%,transparent)}
+.p-serious{color:var(--serious-ink);border-color:color-mix(in srgb,var(--serious) 45%,transparent);background:color-mix(in srgb,var(--serious) 13%,transparent)}
+.p-crit{color:var(--crit-ink);border-color:color-mix(in srgb,var(--crit) 45%,transparent);background:color-mix(in srgb,var(--crit) 11%,transparent)}
+
+/* ---------- tabs ---------- */
+.tabs{background:var(--surface);border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:20}
+.tabs-in{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs-in::-webkit-scrollbar{display:none}
+.tab{appearance:none;background:none;border:0;border-bottom:2px solid transparent;
+  font-family:"Bai Jamjuree",sans-serif;font-size:13.5px;font-weight:500;color:var(--ink-2);
+  padding:12px 14px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.tab .n{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3)}
+.tab:hover{color:var(--ink);background:var(--surface-2)}
+.tab[aria-selected="true"]{color:var(--ink);font-weight:600;border-bottom-color:var(--ink)}
+.tab[aria-selected="true"] .n{color:var(--ink-2)}
+.tab:focus-visible{outline:2px solid var(--ink);outline-offset:-3px}
+
+/* ---------- layout ---------- */
+main{padding:22px 0 90px}
+.panel[hidden]{display:none}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g-23{grid-template-columns:1.6fr 1fr}
+.g-32{grid-template-columns:1fr 1.5fr}
+
+/* ---------- plates (cards) ---------- */
+.plate{background:var(--surface);border:1px solid var(--rule);border-radius:5px;box-shadow:var(--shadow);
+  padding:16px 17px 17px;min-width:0}
+.plate.tight{padding:0}
+.eyebrow{font-family:"Bai Jamjuree",sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);margin:0 0 3px}
+.plate h3{margin:0 0 2px;font-size:16px;font-weight:600;letter-spacing:-.005em}
+.plate .note{font-size:12.5px;color:var(--ink-2);margin:0 0 12px}
+.plate-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+
+/* ---------- exec callout ---------- */
+.callout{border:1px solid var(--rule);border-radius:5px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+.callout-h{padding:13px 17px 11px;border-bottom:1px solid var(--rule);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.callout-h h2{margin:0;font-size:15.5px;font-weight:600}
+.decisions{list-style:none;margin:0;padding:0}
+.decisions li{display:grid;grid-template-columns:26px 1fr auto;gap:12px;align-items:start;
+  padding:13px 17px;border-bottom:1px solid var(--rule)}
+.decisions li:last-child{border-bottom:0}
+.decisions .dn{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3);padding-top:2px}
+.decisions .dt{display:block;font-size:14.5px;font-weight:500;line-height:1.5}
+.decisions .dd{display:block;font-size:12.5px;color:var(--ink-2);margin-top:3px}
+
+/* ---------- generic table ---------- */
+.tbl-scroll{overflow-x:auto}
+table.data{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+table.data th,table.data td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--rule);white-space:nowrap}
+table.data th:first-child,table.data td:first-child{text-align:left;white-space:normal}
+table.data thead th{font-family:"Bai Jamjuree",sans-serif;font-size:11px;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--rule-2)}
+table.data td.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+table.data tbody tr:hover{background:var(--surface-2)}
+table.data tr.hl{background:color-mix(in srgb,var(--s1) 8%,transparent)}
+table.data tr.hl:hover{background:color-mix(in srgb,var(--s1) 12%,transparent)}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;vertical-align:-1px}
+
+/* ---------- chart shell ---------- */
+.chart-scroll{overflow-x:auto;margin:0 -4px}
+.chart-scroll>svg{display:block;min-width:620px;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12.5px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:2px;display:inline-block}
+.legend i.ln{height:3px;border-radius:2px;width:16px}
+.tip{position:fixed;z-index:100;pointer-events:none;background:var(--surface);border:1px solid var(--rule-2);
+  border-radius:4px;box-shadow:var(--shadow);padding:8px 10px;font-size:12.5px;line-height:1.5;
+  min-width:130px;opacity:0;transition:opacity .1s}
+.tip .th{font-family:"Bai Jamjuree",sans-serif;font-weight:600;font-size:12px;margin-bottom:4px;
+  padding-bottom:4px;border-bottom:1px solid var(--rule)}
+.tip .tr{display:flex;justify-content:space-between;gap:14px}
+.tip .tr b{font-family:"IBM Plex Mono",monospace;font-weight:500}
+.tip i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:6px}
+
+/* ---------- toggles ---------- */
+.seg{display:inline-flex;border:1px solid var(--rule-2);border-radius:4px;overflow:hidden;background:var(--surface)}
+.seg button{appearance:none;background:none;border:0;font-family:"Bai Jamjuree",sans-serif;font-size:12px;
+  font-weight:500;color:var(--ink-2);padding:5px 11px;cursor:pointer;border-right:1px solid var(--rule)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);font-weight:600}
+.seg button:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+
+/* ---------- AI blocks ---------- */
+.ai-tag{display:inline-flex;align-items:center;gap:5px;font-family:"Bai Jamjuree",sans-serif;font-size:10.5px;
+  font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);
+  border:1px solid var(--rule-2);border-radius:3px;padding:2px 7px}
+.ai-tag svg{width:11px;height:11px}
+.rec{border:1px solid var(--rule);border-radius:4px;padding:13px 14px;background:var(--surface-2);
+  display:grid;gap:7px}
+.rec h4{margin:0;font-size:14px;font-weight:600;line-height:1.45}
+.rec p{margin:0;font-size:12.5px;color:var(--ink-2)}
+.conf{display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--ink-2)}
+.conf .bar{flex:1;height:5px;background:var(--chip);border-radius:3px;overflow:hidden;max-width:150px}
+.conf .bar i{display:block;height:100%;background:var(--ink-2);border-radius:3px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:12.5px;margin:0}
+.kv dt{color:var(--ink-3)}
+.kv dd{margin:0;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right}
+
+/* ---------- copilot ---------- */
+.cop-btn{position:fixed;right:18px;bottom:18px;z-index:60;display:flex;align-items:center;gap:9px;
+  background:var(--ink);color:var(--ground);border:0;border-radius:999px;padding:11px 17px 11px 14px;
+  font-family:"Bai Jamjuree",sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;
+  box-shadow:0 6px 22px -6px rgba(0,0,0,.45)}
+.cop-btn svg{width:17px;height:17px}
+.cop{position:fixed;inset:auto 0 0 auto;top:0;width:min(430px,100%);height:100%;z-index:70;
+  background:var(--surface);border-left:1px solid var(--rule);display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .22s ease;box-shadow:-14px 0 40px -20px rgba(0,0,0,.5)}
+.cop.open{transform:none}
+.cop-h{padding:14px 16px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.cop-h h3{margin:0;font-size:15px;font-weight:600}
+.cop-h .x{appearance:none;background:none;border:1px solid var(--rule-2);border-radius:4px;color:var(--ink-2);
+  width:28px;height:28px;cursor:pointer;font-size:15px;line-height:1}
+.cop-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:92%;font-size:13.5px;line-height:1.6}
+.msg.u{align-self:flex-end;background:var(--chip);border-radius:12px 12px 3px 12px;padding:9px 12px}
+.msg.a{align-self:flex-start;border:1px solid var(--rule);border-radius:12px 12px 12px 3px;padding:11px 13px;background:var(--surface-2)}
+.msg.a .src{margin-top:8px;padding-top:7px;border-top:1px solid var(--rule);font-size:11.5px;color:var(--ink-3)}
+.msg.a ul{margin:7px 0 0;padding-left:18px}
+.msg.a li{margin-bottom:3px}
+.cop-f{border-top:1px solid var(--rule);padding:11px 14px;display:flex;flex-wrap:wrap;gap:7px}
+.chipq{appearance:none;background:var(--surface-2);border:1px solid var(--rule);border-radius:999px;
+  font-family:inherit;font-size:12px;color:var(--ink-2);padding:5px 11px;cursor:pointer;text-align:left}
+.chipq:hover{border-color:var(--rule-2);color:var(--ink)}
+.scrim{position:fixed;inset:0;background:rgba(4,8,10,.45);z-index:65;opacity:0;pointer-events:none;transition:opacity .22s}
+.scrim.open{opacity:1;pointer-events:auto}
+
+/* ---------- concept tab ---------- */
+.prose{font-size:14.5px;line-height:1.75;max-width:68ch}
+.prose p{margin:0 0 12px}
+.prose ul{margin:0 0 12px;padding-left:20px}
+.prose li{margin-bottom:5px}
+.phase{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.phase:last-child{border-bottom:0}
+.phase .pn{font-family:"Bai Jamjuree",sans-serif;font-size:11px;font-weight:600;letter-spacing:.06em;
+  color:var(--ink-3);border:1px solid var(--rule-2);border-radius:3px;padding:3px 8px;height:fit-content;white-space:nowrap}
+.phase h4{margin:0 0 3px;font-size:14.5px;font-weight:600}
+.phase p{margin:0;font-size:13px;color:var(--ink-2)}
+
+.foot{border-top:1px solid var(--rule);background:var(--surface);padding:18px 0;font-size:12.5px;color:var(--ink-3)}
+
+@media(max-width:700px){
+  .decisions li{grid-template-columns:24px 1fr}
+  .decisions li>span:last-child{grid-column:2}
+}
+@media(max-width:900px){
+  .g2,.g3,.g-23,.g-32{grid-template-columns:1fr}
+  .strip-in{grid-template-columns:1fr 1fr}
+  .tile .val{font-size:23px}
+}
+@media(max-width:560px){
+  .brand h1{font-size:16.5px}
+  .mock{display:none}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="mast"><div class="wrap"><div class="mast-in">
+  <div class="brand">
+    <svg class="seal" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+      <rect x="1" y="1" width="38" height="38" rx="4" stroke="currentColor" stroke-opacity=".28"/>
+      <path d="M6 26c3.2 0 3.2-3.4 6.4-3.4S15.6 26 18.8 26s3.2-3.4 6.4-3.4S28.4 26 31.6 26M6 31c3.2 0 3.2-3.4 6.4-3.4S15.6 31 18.8 31s3.2-3.4 6.4-3.4S28.4 31 31.6 31" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".85"/>
+      <path d="M11 18V9m0 0-3 3m3-3 3 3M29 9v9m0 0 3-3m-3 3-3-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>
+      <circle cx="20" cy="13.5" r="3.2" stroke="currentColor" stroke-width="1.6"/>
+    </svg>
+    <div>
+      <h1>ศูนย์ตัดสินใจจัดสรรน้ำแม่กลอง</h1>
+      <div class="sub">Mae Klong Water Allocation DSS · WEAP + AI</div>
+    </div>
+  </div>
+  <div class="mast-right">
+    <span class="mock" id="srcBadge">ข้อมูลจำลองเพื่อการออกแบบ</span>
+    <span class="stamp" id="srcStamp">ข้อมูล ณ <b>27 ส.ค. 2569 06:00 น.</b></span>
+  </div>
+</div></div></div>
+
+<div class="strip"><div class="wrap"><div class="strip-in" id="strip"></div></div></div>
+
+<div class="tabs"><div class="wrap"><div class="tabs-in" role="tablist" id="tabs"></div></div></div>
+
+<main><div class="wrap" id="panels"></div></main>
+
+<div class="foot"><div class="wrap">
+  <strong>หมายเหตุ:</strong> หน้านี้เป็น <em>mockup เชิงแนวคิด</em> ตัวเลขทั้งหมดเป็นข้อมูลจำลองที่สร้างขึ้นให้สอดคล้องกันเชิงสมดุลมวลน้ำ
+  เพื่อสาธิตรูปแบบการแสดงผลและตรรกะการตัดสินใจเท่านั้น ยังไม่ได้เชื่อมต่อกับผลลัพธ์จริงจากแบบจำลอง WEAP ลุ่มน้ำแม่กลอง
+</div></div>
+
+<button class="cop-btn" id="copBtn" aria-expanded="false" aria-controls="cop">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M5.6 5.6l2.1 2.1M3 12h3M18 12h3M16.3 7.7l2.1-2.1"/><rect x="6" y="10" width="12" height="9" rx="2.5"/><path d="M10 14v1.5M14 14v1.5"/></svg>
+  ถาม AI Copilot
+</button>
+<div class="scrim" id="scrim"></div>
+<aside class="cop" id="cop" aria-label="AI Copilot" aria-hidden="true">
+  <div class="cop-h">
+    <div>
+      <h3>AI Copilot</h3>
+      <div style="font-size:11.5px;color:var(--ink-3)">ตอบจากผลจำลอง WEAP + แผนแม่บทลุ่มน้ำแม่กลอง</div>
+    </div>
+    <button class="x" id="copX" aria-label="ปิด">✕</button>
+  </div>
+  <div class="cop-body" id="copBody"></div>
+  <div class="cop-f" id="copF"></div>
+</aside>
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   ข้อมูลจำลอง (mock) — สร้างให้สอดคล้องกันเชิงสมดุลมวลน้ำ
+   ============================================================ */
+const MO = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+let SECTORS = [
+  {k:'agri', n:'เกษตรกรรม',      c:'var(--s1)', v:[780,810,830,760,420,380,480,520,450,400,400,550]},
+  {k:'dom',  n:'อุปโภคบริโภค',    c:'var(--s2)', v:[32,31,34,35,34,32,31,31,31,31,31,32]},
+  {k:'ind',  n:'อุตสาหกรรม',      c:'var(--s3)', v:[26,25,27,27,26,26,26,26,25,25,25,26]},
+  {k:'com',  n:'พาณิชยกรรม',      c:'var(--s4)', v:[8,8,9,9,8,8,8,8,7,7,7,8]},
+  {k:'sal',  n:'ผลักดันน้ำเค็ม',   c:'var(--s5)', v:[78,88,92,70,20,0,0,0,0,0,0,12]},
+  {k:'eco',  n:'รักษาระบบนิเวศ',   c:'var(--s6)', v:[43,42,45,45,44,43,43,43,43,43,43,43]}
+];
+let UNMET_BAU = [68,118,152,128,46,18,12,6,4,6,14,40];
+let UNMET_AI  = [24,46,68,58,22,8,5,3,2,3,8,21];
+
+let RESERVOIRS = [
+  {n:'เขื่อนศรีนครินทร์',  cap:9982, cur:4120, rel:14.2},
+  {n:'เขื่อนวชิราลงกรณ',   cap:5568, cur:2060, rel:11.6}
+];
+let URC = [11800,10600,9500,8600,8200,8600,9800,11600,13600,14900,14200,12900];
+let LRC = [6900,6100,5300,4700,4400,4700,5300,6200,7500,8900,8600,7700];
+let ACT = [9200,8100,7000,6100,5400,5300,5600,6180,null,null,null,null];
+let F50 = [null,null,null,null,null,null,null,6180,7050,8250,8850,8500];
+let F10 = [null,null,null,null,null,null,null,6180,6600,7300,7500,6900];
+let F90 = [null,null,null,null,null,null,null,6180,7700,9400,10400,10300];
+
+let SITES = [
+  {n:'ปตร.ท่ามะกา',           bau:96.2, ai:97.8},
+  {n:'ปตร.พนมทวน',            bau:91.4, ai:95.6},
+  {n:'ปตร.สองพี่น้อง',         bau:88.7, ai:94.2},
+  {n:'ปตร.กำแพงแสน',          bau:84.1, ai:92.8},
+  {n:'ปตร.นครปฐม',            bau:86.5, ai:93.4},
+  {n:'ปตร.นครชุม',            bau:93.8, ai:96.5},
+  {n:'ปตร.บางเลน',            bau:89.2, ai:94.0},
+  {n:'ปตร.พระพิมล',           bau:90.6, ai:94.8},
+  {n:'ราชบุรีฝั่งขวา',         bau:94.5, ai:96.9},
+  {n:'ราชบุรีฝั่งซ้าย',        bau:92.1, ai:95.7},
+  {n:'ดำเนินสะดวก',           bau:95.3, ai:97.2},
+  {n:'ประปา กปภ./กปน.',       bau:99.6, ai:99.9},
+  {n:'นิคมอุตสาหกรรม',        bau:98.9, ai:99.6}
+];
+
+let SCEN = [
+  {id:'S0', n:'แผนจัดสรรปัจจุบัน (BAU)',        unmet:612, cov:92.8, sal:34, loss:1840, carry:2950, agri:534, c:'var(--s2)'},
+  {id:'S1', n:'AI-Optimized (ปรับลำดับ+รอบเวร)', unmet:268, cov:96.8, sal:11, loss:780,  carry:3410, agri:212, c:'var(--s1)'},
+  {id:'S2', n:'ลดพื้นที่นาปรัง 25% + ชดเชย',     unmet:190, cov:97.8, sal:8,  loss:1120, carry:3880, agri:150, c:'var(--s3)'},
+  {id:'S3', n:'ภัยแล้งรุนแรง คาบ 20 ปี + AI',    unmet:845, cov:90.0, sal:42, loss:2470, carry:1620, agri:742, c:'var(--s5)'}
+];
+
+/* น้ำไหลเข้าอ่างรวม 2 เขื่อน (ล้าน ลบ.ม./สัปดาห์) */
+let INFLOW_OBS = [96,112,128,145,161,138,120,104];
+let INF50 = [118,142,168,190,205,186,152,118,92,74,60,50];
+let INF10 = [96,110,124,136,142,126,100,76,58,46,37,31];
+let INF90 = [146,182,220,256,281,258,214,168,132,106,86,72];
+
+/* ความเค็ม 30 วัน (ย้อนหลัง 23 วัน + พยากรณ์ 7 วัน) */
+let SAL_ST = [
+  {n:'ปากคลองดำเนินสะดวก (กม. 28)', c:'var(--s1)', b:0.12, a:0.34},
+  {n:'ปตร.บางนกแขวก (กม. 22)',      c:'var(--s2)', b:0.18, a:0.62},
+  {n:'สถานีสูบน้ำบ้านแหลม (กม. 14)', c:'var(--s3)', b:0.45, a:2.05}
+];
+let SAL_FC_FROM = 22;
+let SAL = null;        /* ถ้า data.json ไม่ได้ส่งค่านี้มา จะถูกสร้างขึ้นใน recompute() */
+let SAL_NOW = '0.00';  /* ค่าความเค็มล่าสุดที่ตรวจวัดได้ ปตร.บางนกแขวก */
+function genSAL(){
+  return SAL_ST.map(s => Array.from({length:30}, (_,i)=>{
+    const tide = 0.5 + 0.5*Math.sin(2*Math.PI*(i-3)/14.8);
+    const drift = 1 + 0.11*(i/29);
+    return +(s.b + s.a*Math.pow(tide,1.6)*drift).toFixed(3);
+  }));
+}
+
+/* ============================================================
+   เครื่องมือวาดกราฟ (SVG, ไม่ใช้ไลบรารีภายนอก)
+   ============================================================ */
+const NS='http://www.w3.org/2000/svg';
+function E(t,a,st){const n=document.createElementNS(NS,t);
+  if(a)for(const k in a){if(a[k]!=null)n.setAttribute(k,a[k]);}
+  if(st)for(const k in st){n.style[k]=st[k];}
+  return n;}
+function svgRoot(w,h){const s=E('svg',{viewBox:`0 0 ${w} ${h}`,role:'img'});s.setAttribute('preserveAspectRatio','xMidYMid meet');return s;}
+function nice(v){return v.toLocaleString('th-TH',{maximumFractionDigits:2});}
+const AX={size:11.5,fam:'"IBM Plex Mono", monospace'};
+function txt(x,y,s,o={}){const t=E('text',{x,y,'text-anchor':o.anchor||'middle','dominant-baseline':o.base||'auto'},
+  {fontSize:(o.size||AX.size)+'px',fontFamily:o.fam||AX.fam,fill:o.fill||'var(--ink-3)',fontWeight:o.w||400});
+  t.textContent=s;return t;}
+function gridline(x1,y1,x2,y2,strong){return E('line',{x1,y1,x2,y2},{stroke:strong?'var(--axis)':'var(--grid)',strokeWidth:'1'});}
+
+/* tooltip */
+const TIP=document.getElementById('tip');
+function showTip(html,ev){TIP.innerHTML=html;TIP.style.opacity='1';
+  const r=TIP.getBoundingClientRect();
+  let x=ev.clientX+14, y=ev.clientY-10;
+  if(x+r.width>innerWidth-8)x=ev.clientX-r.width-14;
+  if(y+r.height>innerHeight-8)y=innerHeight-r.height-8;
+  if(y<8)y=8;
+  TIP.style.left=x+'px';TIP.style.top=y+'px';}
+function hideTip(){TIP.style.opacity='0';}
+function tipRow(c,l,v){return `<div class="tr"><span>${c?`<i style="background:${c}"></i>`:''}${l}</span><b>${v}</b></div>`;}
+
+function scroller(svg,minw){const d=document.createElement('div');d.className='chart-scroll';
+  if(minw)svg.style.minWidth=minw+'px';d.appendChild(svg);return d;}
+function legend(items){const d=document.createElement('div');d.className='legend';
+  d.innerHTML=items.map(i=>`<span><i class="${i.line?'ln':''}" style="background:${i.c};${i.dash?'opacity:.6':''}"></i>${i.n}</span>`).join('');
+  return d;}
+
+/* ---------- sparkline ---------- */
+function sparkline(vals,color,fill){
+  const w=200,h=22,mn=Math.min(...vals),mx=Math.max(...vals),sp=(mx-mn)||1;
+  const X=i=>i*(w/(vals.length-1)), Y=v=>h-2-((v-mn)/sp)*(h-5);
+  const s=svgRoot(w,h);s.setAttribute('class','spark');s.setAttribute('preserveAspectRatio','none');
+  const d=vals.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)} ${Y(v).toFixed(1)}`).join(' ');
+  if(fill)s.appendChild(E('path',{d:d+`L${w} ${h}L0 ${h}Z`},{fill:color,opacity:.13}));
+  s.appendChild(E('path',{d},{fill:'none',stroke:color,strokeWidth:'2',strokeLinejoin:'round',strokeLinecap:'round',vectorEffect:'non-scaling-stroke'}));
+  s.appendChild(E('circle',{cx:X(vals.length-1),cy:Y(vals[vals.length-1]),r:3},{fill:color}));
+  return s;
+}
+
+/* ---------- crosshair helper ---------- */
+function crosshair(svg,{x0,x1,y0,y1,n,X,render}){
+  const line=E('line',{x1:0,y1:y0,x2:0,y2:y1},{stroke:'var(--ink-3)',strokeWidth:'1',opacity:'0',pointerEvents:'none'});
+  svg.appendChild(line);
+  const rect=E('rect',{x:x0,y:y0,width:x1-x0,height:y1-y0},{fill:'transparent',cursor:'crosshair'});
+  svg.appendChild(rect);
+  const pt=svg.createSVGPoint();
+  function idx(ev){pt.x=ev.clientX;pt.y=ev.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());
+    let best=0,bd=1e9;for(let i=0;i<n;i++){const d=Math.abs(X(i)-p.x);if(d<bd){bd=d;best=i;}}return best;}
+  rect.addEventListener('mousemove',ev=>{const i=idx(ev);line.setAttribute('x1',X(i));line.setAttribute('x2',X(i));
+    line.style.opacity='.5';showTip(render(i),ev);});
+  rect.addEventListener('mouseleave',()=>{line.style.opacity='0';hideTip();});
+  rect.addEventListener('touchstart',ev=>{const t=ev.touches[0];const i=idx(t);line.setAttribute('x1',X(i));line.setAttribute('x2',X(i));
+    line.style.opacity='.5';showTip(render(i),t);},{passive:true});
+}
+
+/* ---------- 1. เกณฑ์ปฏิบัติการอ่างเก็บน้ำ (rule curve) ---------- */
+function chartRuleCurve(){
+  const w=880,h=340,pl=58,pr=14,pt_=30,pb=34, ymax=16000;
+  const X=i=>pl+i*((w-pl-pr)/11), Y=v=>h-pb-(v/ymax)*(h-pb-pt_);
+  const s=svgRoot(w,h);
+  s.appendChild(E('title',null)).textContent='ปริมาณน้ำใช้การได้รวม 2 เขื่อนหลัก เทียบเกณฑ์ปฏิบัติการ';
+  for(let v=0;v<=ymax;v+=4000){s.appendChild(gridline(pl,Y(v),w-pr,Y(v),v===0));
+    s.appendChild(txt(pl-9,Y(v)+4,nice(v),{anchor:'end'}));}
+  s.appendChild(txt(4,pt_-16,'ล้าน ลบ.ม.',{anchor:'start',size:10.5,fam:'\"Bai Jamjuree\",sans-serif'}));
+  MO.forEach((m,i)=>s.appendChild(txt(X(i),h-12,m,{fam:'"IBM Plex Sans Thai",sans-serif',size:11.5})));
+  const path=(arr,from=0)=>arr.map((v,i)=>v==null?null:`${i===from?'M':'L'}${X(i)} ${Y(v)}`).filter(Boolean).join(' ');
+  // operating band
+  const bandD=URC.map((v,i)=>`${i?'L':'M'}${X(i)} ${Y(v)}`).join(' ')+
+    ' '+LRC.map((v,i)=>`L${X(11-i)} ${Y(LRC[11-i])}`).join(' ')+'Z';
+  s.appendChild(E('path',{d:bandD},{fill:'var(--ink-3)',opacity:.07}));
+  // forecast uncertainty band
+  const fb=[];for(let i=7;i<12;i++)fb.push(`${i===7?'M':'L'}${X(i)} ${Y(F90[i])}`);
+  for(let i=11;i>=7;i--)fb.push(`L${X(i)} ${Y(F10[i])}`);
+  s.appendChild(E('path',{d:fb.join(' ')+'Z'},{fill:'var(--band)'}));
+  s.appendChild(E('path',{d:path(URC)},{fill:'none',stroke:'var(--ink-3)',strokeWidth:'1.6',strokeDasharray:'5 4'}));
+  s.appendChild(E('path',{d:path(LRC)},{fill:'none',stroke:'var(--ink-3)',strokeWidth:'1.6',strokeDasharray:'2 3'}));
+  s.appendChild(E('path',{d:path(F50,7)},{fill:'none',stroke:'var(--s1)',strokeWidth:'2',strokeDasharray:'6 4'}));
+  s.appendChild(E('path',{d:path(ACT)},{fill:'none',stroke:'var(--s1)',strokeWidth:'2.4',strokeLinejoin:'round'}));
+  // endpoint emphasis
+  const low=STORAGE<LRC_NOW, mk=low?'var(--crit)':'var(--good)', mkInk=low?'var(--crit-ink)':'var(--good-ink)';
+  s.appendChild(E('circle',{cx:X(ACT_I),cy:Y(STORAGE),r:5.5},{fill:'var(--surface)',stroke:mk,strokeWidth:'2.6'}));
+  s.appendChild(txt(X(ACT_I),Y(STORAGE)-15,nice(STORAGE),{anchor:'middle',size:12,w:600,fill:mkInk}));
+  s.appendChild(txt(X(ACT_I),Y(STORAGE)+22,low?'ต่ำกว่า LRC':'อยู่ในเกณฑ์',{anchor:'middle',size:11,fam:'"IBM Plex Sans Thai",sans-serif',fill:mkInk}));
+  crosshair(s,{x0:pl,x1:w-pr,y0:pt_,y1:h-pb,n:12,X,render:i=>{
+    let r=`<div class="th">${MO[i]} 2569</div>`;
+    if(ACT[i]!=null)r+=tipRow('var(--s1)','ปริมาณน้ำจริง',nice(ACT[i]));
+    if(F50[i]!=null&&i>7)r+=tipRow('var(--s1)','พยากรณ์ (P50)',nice(F50[i]))+tipRow('','ช่วง P10–P90',nice(F10[i])+'–'+nice(F90[i]));
+    r+=tipRow('var(--ink-3)','เกณฑ์บน (URC)',nice(URC[i]))+tipRow('var(--ink-3)','เกณฑ์ล่าง (LRC)',nice(LRC[i]));
+    return r;}});
+  const box=document.createElement('div');box.appendChild(scroller(s,640));
+  box.appendChild(legend([{n:'ปริมาณน้ำใช้การได้จริง',c:'var(--s1)',line:1},{n:'พยากรณ์ AI (P50) + ช่วงเชื่อมั่น 80%',c:'var(--s1)',line:1,dash:1},
+    {n:'เกณฑ์เก็บกักสูงสุด (URC)',c:'var(--ink-3)',line:1},{n:'เกณฑ์เก็บกักต่ำสุด (LRC)',c:'var(--ink-3)',line:1},{n:'สถานะปัจจุบัน — ต่ำกว่าเกณฑ์ LRC',c:'var(--crit)'}]));
+  return box;
+}
+
+/* ---------- 2. ความต้องการน้ำรายเดือนแยกกิจกรรม (stacked) ---------- */
+function chartDemand(){
+  const w=880,h=352,pl=58,pr=14,pt_=30,pb=34;
+  const tot=MO.map((_,i)=>SECTORS.reduce((a,s)=>a+s.v[i],0));
+  const ymax=1200, bw=Math.min(38,(w-pl-pr)/12*0.62);
+  const X=i=>pl+(i+0.5)*((w-pl-pr)/12), Y=v=>h-pb-(v/ymax)*(h-pb-pt_);
+  const s=svgRoot(w,h);
+  for(let v=0;v<=ymax;v+=300){s.appendChild(gridline(pl,Y(v),w-pr,Y(v),v===0));
+    s.appendChild(txt(pl-9,Y(v)+4,nice(v),{anchor:'end'}));}
+  s.appendChild(txt(4,pt_-16,'ล้าน ลบ.ม.',{anchor:'start',size:10.5,fam:'\"Bai Jamjuree\",sans-serif'}));
+  MO.forEach((m,i)=>s.appendChild(txt(X(i),h-12,m,{fam:'"IBM Plex Sans Thai",sans-serif',size:11.5})));
+  MO.forEach((_,i)=>{
+    let acc=0;
+    SECTORS.forEach((sec,si)=>{
+      const v=sec.v[i]; if(v<=0){acc+=v;return;}
+      const y0=Y(acc+v), y1=Y(acc), hh=Math.max(1,y1-y0-(si?2:0));
+      const r=E('rect',{x:X(i)-bw/2,y:y0,width:bw,height:hh,rx:si===SECTORS.length-1?3:0},{fill:sec.c,cursor:'pointer'});
+      r.addEventListener('mouseenter',ev=>showTip(`<div class="th">${MO[i]} · ${sec.n}</div>`+
+        tipRow(sec.c,'ความต้องการน้ำ',nice(v)+' ล้าน ลบ.ม.')+tipRow('','สัดส่วนของเดือน',(v/tot[i]*100).toFixed(1)+'%')+
+        tipRow('','รวมทั้งเดือน',nice(tot[i])),ev));
+      r.addEventListener('mousemove',ev=>showTip(TIP.innerHTML,ev));
+      r.addEventListener('mouseleave',hideTip);
+      s.appendChild(r); acc+=v;
+    });
+    // top rounded cap
+    s.appendChild(txt(X(i),Y(acc)-7,nice(acc),{size:10.5,fill:'var(--ink-2)',w:500}));
+  });
+  const box=document.createElement('div');box.appendChild(scroller(s,720));
+  box.appendChild(legend(SECTORS.map(x=>({n:x.n,c:x.c}))));
+  return box;
+}
+
+/* ---------- 3. น้ำขาดแคลนรายเดือน: BAU vs AI ---------- */
+function chartUnmet(){
+  const w=880,h=312,pl=58,pr=14,pt_=30,pb=34, ymax=160;
+  const step=(w-pl-pr)/12, bw=Math.min(15,step*0.3);
+  const X=i=>pl+(i+0.5)*step, Y=v=>h-pb-(v/ymax)*(h-pb-pt_);
+  const s=svgRoot(w,h);
+  for(let v=0;v<=ymax;v+=40){s.appendChild(gridline(pl,Y(v),w-pr,Y(v),v===0));
+    s.appendChild(txt(pl-9,Y(v)+4,nice(v),{anchor:'end'}));}
+  s.appendChild(txt(4,pt_-16,'ล้าน ลบ.ม.',{anchor:'start',size:10.5,fam:'\"Bai Jamjuree\",sans-serif'}));
+  MO.forEach((m,i)=>s.appendChild(txt(X(i),h-12,m,{fam:'"IBM Plex Sans Thai",sans-serif',size:11.5})));
+  MO.forEach((_,i)=>{
+    [[UNMET_BAU[i],'var(--s2)',-bw-1,'แผนปัจจุบัน'],[UNMET_AI[i],'var(--s1)',1,'AI-Optimized']].forEach(([v,c,off,nm])=>{
+      const y=Y(v), hh=h-pb-y;
+      const r=E('rect',{x:X(i)+off,y,width:bw,height:Math.max(1,hh),rx:3},{fill:c,cursor:'pointer'});
+      r.addEventListener('mouseenter',ev=>showTip(`<div class="th">${MO[i]}</div>`+
+        tipRow('var(--s2)','แผนปัจจุบัน',nice(UNMET_BAU[i]))+tipRow('var(--s1)','AI-Optimized',nice(UNMET_AI[i]))+
+        tipRow('','ลดลง',(100-UNMET_AI[i]/UNMET_BAU[i]*100).toFixed(0)+'%'),ev));
+      r.addEventListener('mousemove',ev=>showTip(TIP.innerHTML,ev));
+      r.addEventListener('mouseleave',hideTip);
+      s.appendChild(r);
+    });
+  });
+  const box=document.createElement('div');box.appendChild(scroller(s,660));
+  box.appendChild(legend([{n:'แผนจัดสรรปัจจุบัน (รวม 612 ล้าน ลบ.ม./ปี)',c:'var(--s2)'},{n:'AI-Optimized (รวม 268 ล้าน ลบ.ม./ปี)',c:'var(--s1)'}]));
+  return box;
+}
+
+/* ---------- 4. Coverage รายโครงการ (dumbbell) ---------- */
+function chartCoverage(){
+  const rows=SITES.length, rh=26, w=880, h=rows*rh+46, pl=168, pr=54, pt_=26;
+  const x0=78, X=v=>pl+((v-x0)/(100-x0))*(w-pl-pr);
+  const s=svgRoot(w,h);
+  [80,85,90,95,100].forEach(v=>{s.appendChild(gridline(X(v),pt_-8,X(v),h-14,v===100));
+    s.appendChild(txt(X(v),pt_-14,v+'%',{size:11}));});
+  SITES.forEach((st,i)=>{
+    const y=pt_+i*rh+rh/2;
+    s.appendChild(txt(pl-14,y+4,st.n,{anchor:'end',fam:'"IBM Plex Sans Thai",sans-serif',size:12.5,fill:'var(--ink-2)'}));
+    s.appendChild(E('line',{x1:X(st.bau),y1:y,x2:X(st.ai),y2:y},{stroke:'var(--rule-2)',strokeWidth:'2.5',strokeLinecap:'round'}));
+    [[st.bau,'var(--s2)'],[st.ai,'var(--s1)']].forEach(([v,c])=>{
+      const dot=E('circle',{cx:X(v),cy:y,r:5.5},{fill:c,stroke:'var(--surface)',strokeWidth:'2',cursor:'pointer'});
+      dot.addEventListener('mouseenter',ev=>showTip(`<div class="th">${st.n}</div>`+
+        tipRow('var(--s2)','แผนปัจจุบัน',st.bau.toFixed(1)+'%')+tipRow('var(--s1)','AI-Optimized',st.ai.toFixed(1)+'%')+
+        tipRow('','ส่วนต่าง','+'+(st.ai-st.bau).toFixed(1)+' จุด'),ev));
+      dot.addEventListener('mousemove',ev=>showTip(TIP.innerHTML,ev));
+      dot.addEventListener('mouseleave',hideTip);
+      s.appendChild(dot);
+    });
+    s.appendChild(txt(w-pr+10,y+4,st.ai.toFixed(1),{anchor:'start',size:11.5,fill:'var(--ink-2)'}));
+  });
+  const box=document.createElement('div');box.appendChild(scroller(s,660));
+  box.appendChild(legend([{n:'ความเพียงพอ — แผนปัจจุบัน',c:'var(--s2)'},{n:'ความเพียงพอ — AI-Optimized',c:'var(--s1)'}]));
+  return box;
+}
+
+/* ---------- 5. พยากรณ์น้ำไหลเข้าอ่าง ---------- */
+function chartInflow(){
+  const obs=INFLOW_OBS, n=obs.length+INF50.length, w=880,h=322,pl=56,pr=16,pt_=30,pb=42, ymax=300;
+  const X=i=>pl+i*((w-pl-pr)/(n-1)), Y=v=>h-pb-(v/ymax)*(h-pb-pt_);
+  const s=svgRoot(w,h);
+  for(let v=0;v<=ymax;v+=60){s.appendChild(gridline(pl,Y(v),w-pr,Y(v),v===0));
+    s.appendChild(txt(pl-9,Y(v)+4,nice(v),{anchor:'end'}));}
+  s.appendChild(txt(4,pt_-16,'ล้าน ลบ.ม./สัปดาห์',{anchor:'start',size:10.5,fam:'\"Bai Jamjuree\",sans-serif'}));
+  const cut=obs.length-1;
+  s.appendChild(E('rect',{x:X(cut),y:pt_,width:w-pr-X(cut),height:h-pb-pt_},{fill:'var(--ink-3)',opacity:.045}));
+  s.appendChild(E('line',{x1:X(cut),y1:pt_,x2:X(cut),y2:h-pb},{stroke:'var(--axis)',strokeWidth:'1',strokeDasharray:'3 3'}));
+  s.appendChild(txt(X(cut)+8,pt_+13,'▸ พยากรณ์ 12 สัปดาห์',{anchor:'start',size:11,fam:'"Bai Jamjuree",sans-serif',fill:'var(--ink-3)'}));
+  const lo=[obs[cut],...INF10], hi=[obs[cut],...INF90], mid=[obs[cut],...INF50];
+  let d=hi.map((v,i)=>`${i?'L':'M'}${X(cut+i)} ${Y(v)}`).join(' ');
+  for(let i=lo.length-1;i>=0;i--)d+=`L${X(cut+i)} ${Y(lo[i])}`;
+  s.appendChild(E('path',{d:d+'Z'},{fill:'var(--band)'}));
+  s.appendChild(E('path',{d:mid.map((v,i)=>`${i?'L':'M'}${X(cut+i)} ${Y(v)}`).join(' ')},
+    {fill:'none',stroke:'var(--s1)',strokeWidth:'2.2',strokeDasharray:'6 4'}));
+  s.appendChild(E('path',{d:obs.map((v,i)=>`${i?'L':'M'}${X(i)} ${Y(v)}`).join(' ')},
+    {fill:'none',stroke:'var(--s1)',strokeWidth:'2.4',strokeLinejoin:'round'}));
+  s.appendChild(E('circle',{cx:X(cut),cy:Y(obs[cut]),r:4.5},{fill:'var(--s1)',stroke:'var(--surface)',strokeWidth:'2'}));
+  const peak=INF50.indexOf(Math.max(...INF50));
+  s.appendChild(txt(X(cut+1+peak),Y(INF50[peak])-11,'จุดสูงสุดคาด '+nice(INF50[peak]),{size:11,fill:'var(--ink-2)',w:500,fam:'"IBM Plex Sans Thai",sans-serif'}));
+  for(let i=0;i<n;i+=2){const lab=i<=cut?`S−${cut-i}`:`S+${i-cut}`;
+    s.appendChild(txt(X(i),h-20,lab,{size:10.5}));}
+  s.appendChild(txt((pl+w-pr)/2,h-6,'สัปดาห์ (S−n = ย้อนหลัง, S+n = ล่วงหน้า)',{size:10.5,fam:'"IBM Plex Sans Thai",sans-serif'}));
+  crosshair(s,{x0:pl,x1:w-pr,y0:pt_,y1:h-pb,n,X,render:i=>{
+    if(i<=cut)return `<div class="th">สัปดาห์ S−${cut-i}</div>`+tipRow('var(--s1)','ตรวจวัดจริง',nice(obs[i])+' ล้าน ลบ.ม.');
+    const j=i-cut-1;
+    return `<div class="th">สัปดาห์ S+${i-cut}</div>`+tipRow('var(--s1)','พยากรณ์ P50',nice(INF50[j]))+
+      tipRow('','P10 (แล้ง)',nice(INF10[j]))+tipRow('','P90 (ฝนมาก)',nice(INF90[j]));}});
+  const box=document.createElement('div');box.appendChild(scroller(s,660));
+  box.appendChild(legend([{n:'ตรวจวัดจริง',c:'var(--s1)',line:1},{n:'พยากรณ์ P50',c:'var(--s1)',line:1,dash:1},{n:'ช่วงเชื่อมั่น P10–P90',c:'var(--band)'}]));
+  return box;
+}
+
+/* ---------- 6. Trade-off ทางเลือก (Pareto) ---------- */
+function chartTradeoff(){
+  const w=580,h=352,pl=64,pr=104,pt_=34,pb=52, xmax=800, ymax=50;
+  const X=v=>pl+(v/xmax)*(w-pl-pr), Y=v=>h-pb-(v/ymax)*(h-pb-pt_);
+  const s=svgRoot(w,h);
+  for(let v=0;v<=ymax;v+=10){s.appendChild(gridline(pl,Y(v),w-pr,Y(v),v===0));s.appendChild(txt(pl-9,Y(v)+4,v,{anchor:'end'}));}
+  for(let v=0;v<=xmax;v+=200){s.appendChild(gridline(X(v),pt_,X(v),h-pb,v===0));s.appendChild(txt(X(v),h-32,nice(v),{}));}
+  s.appendChild(txt((pl+w-pr)/2,h-12,'น้ำขาดแคลนภาคเกษตร (ล้าน ลบ.ม./ปี) →',{size:11,fam:'"IBM Plex Sans Thai",sans-serif'}));
+  s.appendChild(txt(4,pt_-16,'วันที่ความเค็มเกินเกณฑ์',{anchor:'start',size:10.5,fam:'"Bai Jamjuree",sans-serif'}));
+  const front=SCEN.filter(x=>x.id!=='S3').sort((a,b)=>a.agri-b.agri);
+  s.appendChild(E('path',{d:front.map((p,i)=>`${i?'L':'M'}${X(p.agri)} ${Y(p.sal)}`).join(' ')},
+    {fill:'none',stroke:'var(--ink-3)',strokeWidth:'1.5',strokeDasharray:'4 4'}));
+  s.appendChild(txt(X(340),Y(6),'แนวทางเลือกที่มีประสิทธิภาพ (Pareto front)',{size:10.5,fill:'var(--ink-3)',fam:'"IBM Plex Sans Thai",sans-serif',anchor:'start'}));
+  SCEN.forEach(p=>{
+    const c=E('circle',{cx:X(p.agri),cy:Y(p.sal),r:9},{fill:p.c,stroke:'var(--surface)',strokeWidth:'2.5',cursor:'pointer'});
+    c.addEventListener('mouseenter',ev=>showTip(`<div class="th">${p.id} · ${p.n}</div>`+
+      tipRow(p.c,'ขาดแคลนภาคเกษตร',nice(p.agri)+' ล้าน ลบ.ม.')+tipRow('','วันความเค็มเกินเกณฑ์',p.sal+' วัน')+
+      tipRow('','ความเพียงพอรวม',p.cov.toFixed(1)+'%'),ev));
+    c.addEventListener('mousemove',ev=>showTip(TIP.innerHTML,ev));
+    c.addEventListener('mouseleave',hideTip);
+    s.appendChild(c);
+    const far=X(p.agri)>w-pr-46;
+    s.appendChild(txt(X(p.agri)+(far?-14:14),Y(p.sal)+4,p.id,{anchor:far?'end':'start',size:12,w:600,fill:'var(--ink)'}));
+  });
+  s.appendChild(txt(pl+6,pt_+14,'↙ ดีกว่า',{anchor:'start',size:10.5,fill:'var(--ink-3)',fam:'"IBM Plex Sans Thai",sans-serif'}));
+  const box=document.createElement('div');box.appendChild(scroller(s,470));
+  return box;
+}
+
+/* ---------- 7. ความเค็ม 30 วัน ---------- */
+function chartSalinity(){
+  const n=30,w=880,h=332,pl=54,pr=168,pt_=30,pb=36, ymax=3;
+  const X=i=>pl+i*((w-pl-pr)/(n-1)), Y=v=>h-pb-(v/ymax)*(h-pb-pt_);
+  const s=svgRoot(w,h);
+  for(let v=0;v<=ymax;v+=0.5){s.appendChild(gridline(pl,Y(v),w-pr,Y(v),v===0));
+    s.appendChild(txt(pl-9,Y(v)+4,v.toFixed(1),{anchor:'end'}));}
+  s.appendChild(txt(4,pt_-16,'กรัม/ลิตร',{anchor:'start',size:10.5,fam:'\"Bai Jamjuree\",sans-serif'}));
+  s.appendChild(E('rect',{x:X(SAL_FC_FROM),y:pt_,width:w-pr-X(SAL_FC_FROM),height:h-pb-pt_},{fill:'var(--ink-3)',opacity:.045}));
+  s.appendChild(txt(X(SAL_FC_FROM)+7,pt_+13,'▸ พยากรณ์ 7 วัน',{anchor:'start',size:11,fam:'"Bai Jamjuree",sans-serif',fill:'var(--ink-3)'}));
+  [[0.5,'เกณฑ์เฝ้าระวัง 0.5 g/L','var(--warn)'],[2.0,'เกณฑ์วิกฤต 2.0 g/L','var(--crit)']].forEach(([v,l,c])=>{
+    s.appendChild(E('line',{x1:pl,y1:Y(v),x2:w-pr,y2:Y(v)},{stroke:c,strokeWidth:'1.6',strokeDasharray:'7 4'}));
+    s.appendChild(txt(w-pr+8,Y(v)+4,l,{anchor:'start',size:11,fill:'var(--ink-2)',fam:'"IBM Plex Sans Thai",sans-serif'}));
+  });
+  SAL_ST.forEach((st,si)=>{
+    const v=SAL[si];
+    s.appendChild(E('path',{d:v.slice(0,SAL_FC_FROM+1).map((y,i)=>`${i?'L':'M'}${X(i)} ${Y(y)}`).join(' ')},
+      {fill:'none',stroke:st.c,strokeWidth:'2.2',strokeLinejoin:'round'}));
+    s.appendChild(E('path',{d:v.slice(SAL_FC_FROM).map((y,i)=>`${i?'L':'M'}${X(SAL_FC_FROM+i)} ${Y(y)}`).join(' ')},
+      {fill:'none',stroke:st.c,strokeWidth:'2.2',strokeDasharray:'5 4'}));
+    s.appendChild(E('circle',{cx:X(n-1),cy:Y(v[n-1]),r:4},{fill:st.c,stroke:'var(--surface)',strokeWidth:'2'}));
+  });
+  for(let i=0;i<n;i+=4)s.appendChild(txt(X(i),h-14,(i<=SAL_FC_FROM?'D−'+(SAL_FC_FROM-i):'D+'+(i-SAL_FC_FROM)),{size:10.5}));
+  crosshair(s,{x0:pl,x1:w-pr,y0:pt_,y1:h-pb,n,X,render:i=>{
+    let r=`<div class="th">${i<=SAL_FC_FROM?'ย้อนหลัง '+(SAL_FC_FROM-i)+' วัน':'พยากรณ์ +'+(i-SAL_FC_FROM)+' วัน'}</div>`;
+    SAL_ST.forEach((st,si)=>r+=tipRow(st.c,st.n.split(' (')[0],SAL[si][i].toFixed(2)+' g/L'));
+    return r;}});
+  const box=document.createElement('div');box.appendChild(scroller(s,700));
+  box.appendChild(legend(SAL_ST.map(x=>({n:x.n,c:x.c,line:1}))));
+  return box;
+}
+
+/* ---------- 8. ตำแหน่งลิ่มความเค็ม (isohaline) ---------- */
+function chartIsohaline(){
+  const w=560,h=150,pl=34,pr=34,y=74;
+  const X=km=>pl+(km/40)*(w-pl-pr);
+  const s=svgRoot(w,h);
+  s.appendChild(E('rect',{x:X(8),y:y-20,width:X(18)-X(8),height:40,rx:3},{fill:'var(--s3)',opacity:.16}));
+  const grad=E('linearGradient',{id:'salgrad',x1:'0',x2:'1'});
+  [[0,'var(--s1)',.10],[55,'var(--s1)',.30],[100,'var(--s1)',.62]].forEach(([o,c,op])=>
+    grad.appendChild(E('stop',{offset:o+'%','stop-color':c,'stop-opacity':op})));
+  const defs=E('defs');defs.appendChild(grad);s.appendChild(defs);
+  s.appendChild(E('rect',{x:pl,y:y-9,width:w-pl-pr,height:18,rx:3},{fill:'url(#salgrad)'}));
+  s.appendChild(E('line',{x1:X(12.4),y1:y-26,x2:X(12.4),y2:y+26},{stroke:'var(--ink)',strokeWidth:'2.5'}));
+  s.appendChild(txt(X(12.4),y-32,'12.4 กม.',{size:12.5,w:600,fill:'var(--ink)'}));
+  s.appendChild(txt(X(12.4),y+42,'ลิ่มความเค็ม 2 g/L (ปัจจุบัน)',{size:11,fam:'"IBM Plex Sans Thai",sans-serif',fill:'var(--ink-2)'}));
+  [0,10,20,30,40].forEach(km=>{s.appendChild(E('line',{x1:X(km),y1:y+11,x2:X(km),y2:y+15},{stroke:'var(--axis)',strokeWidth:'1'}));
+    s.appendChild(txt(X(km),y+27,km,{size:10.5}));});
+  s.appendChild(txt(pl,y-20,'ปากแม่น้ำ',{anchor:'start',size:11,fam:'"IBM Plex Sans Thai",sans-serif'}));
+  s.appendChild(txt(w-pr,y-20,'ท้ายเขื่อนแม่กลอง',{anchor:'end',size:11,fam:'"IBM Plex Sans Thai",sans-serif'}));
+  s.appendChild(txt((pl+w-pr)/2,h-6,'ระยะทางจากปากแม่น้ำ (กิโลเมตร)',{size:10.5,fam:'"IBM Plex Sans Thai",sans-serif'}));
+  const box=document.createElement('div');box.appendChild(scroller(s,430));
+  box.appendChild(legend([{n:'เขตน้ำกร่อยเป้าหมาย 8–18 กม.',c:'color-mix(in srgb,var(--s3) 34%,transparent)'},{n:'ลิ่มความเค็ม 2 g/L ปัจจุบัน — กม. 12.4',c:'var(--ink)',line:1}]));
+  return box;
+}
+
+/* ---------- 9. แผนผังโครงข่ายลุ่มน้ำ (WEAP schematic) ---------- */
+let ZONES=[
+  {n:'โซนพนมทวน–สองพี่น้อง',  x:540,y:74,  cov:90.1, st:'warn',    q:'ส่งน้ำ 18.4 ล้าน ลบ.ม./สัปดาห์'},
+  {n:'โซนกำแพงแสน–นครปฐม',   x:690,y:74,  cov:85.3, st:'serious', q:'ส่งน้ำ 22.1 ล้าน ลบ.ม./สัปดาห์'},
+  {n:'โซนบางเลน–พระพิมล',     x:822,y:74,  cov:89.9, st:'warn',    q:'ส่งน้ำ 14.7 ล้าน ลบ.ม./สัปดาห์'},
+  {n:'โซนท่ามะกา–นครชุม',     x:540,y:306, cov:95.0, st:'good',    q:'ส่งน้ำ 16.2 ล้าน ลบ.ม./สัปดาห์'},
+  {n:'โซนราชบุรี 2 ฝั่ง',      x:690,y:306, cov:93.3, st:'good',    q:'ส่งน้ำ 20.8 ล้าน ลบ.ม./สัปดาห์'},
+  {n:'โซนดำเนินสะดวก',        x:822,y:306, cov:95.3, st:'good',    q:'ส่งน้ำ 11.9 ล้าน ลบ.ม./สัปดาห์'}
+];
+const STC={good:'var(--good)',warn:'var(--warn)',serious:'var(--serious)',crit:'var(--crit)'};
+function chartSchematic(){
+  const w=944,h=400;const s=svgRoot(w,h);
+  const river=(d,sw,dash)=>s.appendChild(E('path',{d},{fill:'none',stroke:'var(--s1)',strokeWidth:sw,
+    strokeLinecap:'round',strokeLinejoin:'round',opacity:dash?.35:.45,strokeDasharray:dash||null}));
+  river('M104 84 C170 84 190 150 244 186',6);
+  river('M104 300 C170 300 190 222 244 190',6);
+  river('M244 188 H352',7);
+  river('M408 188 H830',7);
+  river('M462 188 V96 H822',4);
+  river('M462 188 V284 H822',4);
+  function node(x,y,label,sub,st,extra,wid=132,hei=46){
+    const g=E('g',{},{cursor:'pointer'});
+    g.appendChild(E('rect',{x:x-wid/2,y:y-hei/2,width:wid,height:hei,rx:4},
+      {fill:'var(--surface)',stroke:'var(--rule-2)',strokeWidth:'1'}));
+    if(st)g.appendChild(E('rect',{x:x-wid/2,y:y-hei/2,width:4,height:hei,rx:2},{fill:STC[st]}));
+    const t1=txt(x-wid/2+13,y-4,label,{anchor:'start',size:11.5,fam:'"IBM Plex Sans Thai",sans-serif',fill:'var(--ink)',w:600});
+    const t2=txt(x-wid/2+13,y+12,sub,{anchor:'start',size:11.5,fill:'var(--ink-2)'});
+    g.appendChild(t1);g.appendChild(t2);
+    if(extra){g.addEventListener('mouseenter',ev=>showTip(extra,ev));
+      g.addEventListener('mousemove',ev=>showTip(TIP.innerHTML,ev));g.addEventListener('mouseleave',hideTip);}
+    s.appendChild(g);
+  }
+  RESERVOIRS.forEach((r,i)=>{
+    const pc=r.cur/r.cap*100, st=pc<38?'serious':pc<55?'warn':'good';
+    node(70,i?300:84,r.n,nice(r.cur)+' ล./'+pc.toFixed(1)+'%',st,
+      `<div class="th">${r.n}</div>${tipRow('','น้ำใช้การได้',nice(r.cur)+' ล้าน ลบ.ม.')}${tipRow('','ความจุใช้การ',nice(r.cap)+' ล้าน ลบ.ม.')}${tipRow('','ระบายวันนี้',nice(r.rel)+' ล้าน ลบ.ม.')}`,124);
+  });
+  node(244,188,'จุดบรรจบปากแพรก','Q 318 ลบ.ม./วิ',null,
+    `<div class="th">จุดบรรจบแควใหญ่–แควน้อย</div>${tipRow('','อัตราการไหล','318 ลบ.ม./วินาที')}`,124,40);
+  node(380,188,'เขื่อนแม่กลอง (ท่าม่วง)','ปันน้ำ 6 สาย','warn',
+    `<div class="th">เขื่อนแม่กลอง อ.ท่าม่วง</div>${tipRow('','น้ำเข้าคลองส่งน้ำ','104.1 ล้าน ลบ.ม./สัปดาห์')}${tipRow('','ระบายท้ายน้ำ','52 ลบ.ม./วินาที')}${tipRow('','ผลักดันน้ำเค็มขั้นต่ำ','45 ลบ.ม./วินาที')}`,140,44);
+  ZONES.forEach(z=>node(z.x,z.y,z.n,'ความเพียงพอ '+z.cov.toFixed(1)+'%',z.st,
+    `<div class="th">${z.n}</div>${tipRow(STC[z.st],'ความเพียงพอ (Coverage)',z.cov.toFixed(1)+'%')}${tipRow('',z.q.split(' ')[0],z.q.replace('ส่งน้ำ ',''))}`,148));
+  node(822,188,'ปากแม่น้ำ สมุทรสงคราม','ความเค็ม '+SAL_NOW+' g/L','warn',
+    `<div class="th">ท้ายน้ำ / เขตน้ำกร่อย</div>${tipRow('','ความเค็ม ปตร.บางนกแขวก',SAL_NOW+' g/L')}${tipRow('','ลิ่มความเค็ม 2 g/L','กม. 12.4')}${tipRow('','Q ผลักดันน้ำเค็ม','52 / ต้องการ 45 ลบ.ม./วิ')}`,152,44);
+  s.appendChild(txt(462,178,'คลองสายใหญ่ฝั่งซ้าย',{anchor:'start',size:10.5,fam:'"Bai Jamjuree",sans-serif',fill:'var(--ink-3)'}));
+  s.appendChild(txt(470,206,'คลองสายใหญ่ฝั่งขวา',{anchor:'start',size:10.5,fam:'"Bai Jamjuree",sans-serif',fill:'var(--ink-3)'}));
+  const box=document.createElement('div');box.appendChild(scroller(s,880));
+  box.appendChild(legend([{n:'เพียงพอ ≥ 93%',c:'var(--good)'},{n:'เฝ้าระวัง 88–93%',c:'var(--warn)'},{n:'เสี่ยงขาดแคลน < 88%',c:'var(--serious)'}]));
+  return box;
+}
+
+/* ---------- 10. สถาปัตยกรรมระบบ ---------- */
+const ARCH=[
+  {t:'ชั้นข้อมูลนำเข้า', s:'Data Layer', items:['โทรมาตรระดับน้ำ–ปริมาณน้ำ (ชป./สทนช.)','ฝนกริดรายชั่วโมง (TMD, GSMaP)','ข้อมูลอ่างเก็บน้ำรายวัน 2 เขื่อนหลัก','สถานีความเค็ม–ระดับน้ำขึ้นลงอัตโนมัติ','ภาพดาวเทียม NDVI / พื้นที่เพาะปลูก (GISTDA)','ข้อมูลประชากร–อุตสาหกรรม–เศรษฐกิจ']},
+  {t:'ชั้นแบบจำลอง', s:'WEAP Core', items:['WEAP ลุ่มน้ำแม่กลอง (โครงข่าย + Demand Sites)','WEAP API / Python สำหรับรันอัตโนมัติ','ชุดสถานการณ์อ้างอิง (BAU / แผนแม่บท)','การสอบเทียบ–ตรวจพิสูจน์รายปี']},
+  {t:'ชั้นปัญญาประดิษฐ์', s:'AI Layer', items:['พยากรณ์น้ำท่า–ฝน (LSTM / Transformer)','พยากรณ์ความต้องการน้ำ (LightGBM + NDVI)','พยากรณ์ความเค็ม (LSTM + สัญญาณน้ำขึ้นลง)','Surrogate model แทน WEAP (เร็วขึ้น ~4,200 เท่า)','Multi-objective optimization (NSGA-II)','LLM Copilot แบบ RAG บนแผนแม่บท + ผลจำลอง']},
+  {t:'ชั้นการตัดสินใจ', s:'Decision Layer', items:['6 มุมมองสำหรับผู้บริหารและศูนย์ปฏิบัติการ','ระบบแจ้งเตือนอัตโนมัติตามเกณฑ์','บันทึกเหตุผลการตัดสินใจ (Decision log)','รายงานเสนอคณะกรรมการลุ่มน้ำ']}
+];
+function chartArch(){
+  const wrap=document.createElement('div');
+  wrap.style.display='grid';wrap.style.gap='0';
+  ARCH.forEach((L,i)=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:grid;grid-template-columns:150px 1fr;gap:16px;padding:15px 0;border-bottom:'+(i<3?'1px solid var(--rule)':'0');
+    row.innerHTML=`<div>
+        <div style="font-family:'Bai Jamjuree',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.09em;color:var(--ink-3);text-transform:uppercase">ชั้นที่ ${i+1} · ${L.s}</div>
+        <div style="font-family:'Bai Jamjuree',sans-serif;font-size:15px;font-weight:600;margin-top:2px">${L.t}</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px">${L.items.map(x=>
+        `<span style="font-size:12.5px;background:var(--surface-2);border:1px solid var(--rule);border-radius:4px;padding:5px 10px;color:var(--ink-2)">${x}</span>`).join('')}</div>`;
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+
+/* ============================================================
+   ค่าที่คำนวณจากข้อมูลข้างต้น (ตรวจสอบสมดุลได้)
+   ============================================================ */
+let MONTH_TOT, YEAR_TOT, YTD_DEM, YTD_UNMET, YTD_COV, COV_M, CUM_UNMET;
+let ACT_I, STORAGE, ACTIVE_CAP, LRC_NOW;
+const MONTHS_ELAPSED = 8;   /* ม.ค.–ส.ค. — ปรับตามเดือนล่าสุดที่มีข้อมูลจริง */
+
+/* คำนวณค่าที่ได้จากข้อมูลดิบใหม่ทั้งหมด เรียกทุกครั้งหลังโหลดข้อมูล */
+function recompute(){
+  if(!SAL || !SAL.length) SAL = genSAL();
+  ACT_I      = ACT.reduce((k,v,i)=>v!=null?i:k,0);   /* เดือนล่าสุดที่มีข้อมูลจริง */
+  STORAGE    = ACT[ACT_I];
+  ACTIVE_CAP = RESERVOIRS.reduce((a,r)=>a+r.cap,0);
+  LRC_NOW    = LRC[ACT_I];
+  SAL_NOW   = SAL[1][SAL_FC_FROM].toFixed(2);
+  MONTH_TOT = MO.map((_,i)=>SECTORS.reduce((a,s)=>a+s.v[i],0));
+  YEAR_TOT  = MONTH_TOT.reduce((a,b)=>a+b,0);
+  const m   = MONTHS_ELAPSED;
+  YTD_DEM   = MONTH_TOT.slice(0,m).reduce((a,b)=>a+b,0);
+  YTD_UNMET = UNMET_BAU.slice(0,m).reduce((a,b)=>a+b,0);
+  YTD_COV   = (YTD_DEM-YTD_UNMET)/YTD_DEM*100;
+  COV_M     = MO.map((_,i)=>(MONTH_TOT[i]-UNMET_BAU[i])/MONTH_TOT[i]*100);
+  CUM_UNMET = UNMET_BAU.slice(0,m).map((_,i,a)=>a.slice(0,i+1).reduce((x,y)=>x+y,0));
+}
+
+const ICON={
+  warn:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M8 2.6 1.8 13.4h12.4L8 2.6Z" stroke-linejoin="round"/><path d="M8 6.6v3.1M8 11.6v.1"/></svg>',
+  good:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 8.4 6.3 12l7-8"/></svg>',
+  serious:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="8" cy="8" r="6.2"/><path d="M8 4.8v3.6M8 11v.1"/></svg>',
+  crit:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8" cy="8" r="6.2"/><path d="m5.8 5.8 4.4 4.4M10.2 5.8l-4.4 4.4"/></svg>'
+};
+const pill=(k,t)=>`<span class="pill p-${k}">${ICON[k]}${t}</span>`;
+const AIICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M5.6 5.6l2.1 2.1M3 12h3M18 12h3M16.3 7.7l2.1-2.1"/><rect x="6" y="10" width="12" height="9" rx="2.5"/><path d="M10 14v1.5M14 14v1.5"/></svg>';
+
+/* ---------- instrument strip ---------- */
+function buildStrip(){
+  const host=document.getElementById('strip');
+  const tiles=[
+    {lab:'ปริมาณน้ำต้นทุน 2 เขื่อนหลัก', val:nice(STORAGE), unit:'ล้าน ลบ.ม.',
+     foot:(STORAGE/ACTIVE_CAP*100).toFixed(1)+'% ของความจุใช้การ · '+(STORAGE<LRC_NOW
+        ? pill('warn','ต่ำกว่าเกณฑ์ LRC '+nice(LRC_NOW-STORAGE)+' ล้าน ลบ.ม.')
+        : pill('good','อยู่ในเกณฑ์ปฏิบัติการ')),
+     spark:ACT.filter(x=>x!=null), c:'var(--s1)'},
+    {lab:'ความเพียงพอรวมทั้งลุ่มน้ำ (YTD)', val:YTD_COV.toFixed(1), unit:'%',
+     foot:'เป้าหมายแผนแม่บท ≥ 95% · '+pill('serious','ต่ำกว่าเป้าหมาย 3.8 จุด'),
+     spark:COV_M.slice(0,8), c:'var(--s3)'},
+    {lab:'น้ำขาดแคลนสะสม ม.ค.–ส.ค.', val:nice(YTD_UNMET), unit:'ล้าน ลบ.ม.',
+     foot:'คิดเป็น '+(YTD_UNMET/YTD_DEM*100).toFixed(1)+'% ของความต้องการ · '+pill('warn','สูงกว่าค่าเฉลี่ย 5 ปี 18%'),
+     spark:CUM_UNMET, c:'var(--s2)'},
+    {lab:'ความเค็ม ปตร.บางนกแขวก', val:SAL[1][SAL_FC_FROM].toFixed(2), unit:'กรัม/ลิตร',
+     foot:'เกณฑ์เฝ้าระวัง 0.50 g/L · '+pill('warn','เกินเกณฑ์ต่อเนื่อง 3 วัน'),
+     spark:SAL[1].slice(9,SAL_FC_FROM+1), c:'var(--s2)'}
+  ];
+  tiles.forEach(t=>{
+    const d=document.createElement('div');d.className='tile';
+    d.innerHTML=`<span class="lab">${t.lab}</span>
+      <div class="val">${t.val} <small>${t.unit}</small></div>
+      <div class="foot">${t.foot}</div>`;
+    d.appendChild(sparkline(t.spark,t.c,true));
+    host.appendChild(d);
+  });
+}
+
+/* ---------- แผงที่ 1: ภาพรวม ---------- */
+function panelOverview(){
+  const decisions=[
+    {t:'อนุมัติปรับลดการส่งน้ำคลองสายใหญ่ฝั่งขวา 8% ระหว่าง 1–14 ก.ย. 2569',
+     d:'เพื่อสำรองน้ำผลักดันน้ำเค็มช่วงน้ำเกิด 2–6 ก.ย. — AI ประเมินว่าลดวันที่ความเค็มเกินเกณฑ์ได้ 6 วัน โดยความเพียงพอภาคเกษตรลดลงเพียง 0.9 จุด',
+     p:pill('warn','ต้องตัดสินใจภายใน 30 ส.ค.')},
+    {t:'ทบทวนรอบเวรส่งน้ำโซนกำแพงแสน–นครปฐม',
+     d:'เป็นโซนที่ความเพียงพอต่ำสุดในลุ่มน้ำ (85.3%) ต่อเนื่อง 3 เดือน — เสนอเลื่อนรอบเวรออก 10 วันและเพิ่มการสูบกลับจากคลองระบาย',
+     p:pill('serious','ค้างพิจารณา 2 สัปดาห์')},
+    {t:'รับทราบสถานะน้ำต้นทุนต่ำกว่าเกณฑ์เก็บกักต่ำสุด',
+     d:'ปริมาณน้ำใช้การได้รวม 6,180 ล้าน ลบ.ม. ต่ำกว่า LRC เดือน ส.ค. — พยากรณ์ 4 เดือนข้างหน้ามีโอกาส 22% ที่จะเข้าฤดูแล้งด้วยน้ำต้นทุนต่ำกว่า 7,500 ล้าน ลบ.ม.',
+     p:pill('good','อยู่ในแผนเฝ้าระวัง')}
+  ];
+  const kpis=[
+    ['ความเพียงพอรวมทั้งลุ่มน้ำ','91.2%','≥ 95%','serious'],
+    ['น้ำขาดแคลนรายปี (คาดการณ์)','612 ล้าน ลบ.ม.','≤ 300','serious'],
+    ['ความน่าเชื่อถือของระบบ (Reliability)','83.3%','≥ 90%','warn'],
+    ['วันที่ความเค็มเกินเกณฑ์','34 วัน/ปี','≤ 15','serious'],
+    ['ความเสมอภาคระหว่างโซน (Gini)','0.061','≤ 0.05','warn'],
+    ['น้ำเพื่อระบบนิเวศที่จัดสรรได้','98.1%','100%','good'],
+    ['ผลิตภาพการใช้น้ำ','7.42 บาท/ลบ.ม.','≥ 8.00','warn']
+  ];
+  return `
+  <div class="callout">
+    <div class="callout-h">
+      <span class="ai-tag">${AIICON} จัดลำดับโดย AI</span>
+      <h2>สิ่งที่ต้องตัดสินใจสัปดาห์นี้</h2>
+    </div>
+    <ul class="decisions">${decisions.map((d,i)=>`<li>
+      <span class="dn">${String(i+1).padStart(2,'0')}</span>
+      <span><span class="dt">${d.t}</span><span class="dd">${d.d}</span></span>
+      <span>${d.p}</span></li>`).join('')}</ul>
+  </div>
+
+  <div class="grid" style="margin-bottom:14px">
+    <div class="plate">
+      <div class="plate-head"><div>
+        <p class="eyebrow">โครงข่ายจัดสรรน้ำ · จากแบบจำลอง WEAP</p>
+        <h3>แผนผังลุ่มน้ำแม่กลอง — สถานะรายโซน</h3>
+        <p class="note">แต่ละโหนดคือ Demand Site ในแบบจำลอง แถบสีด้านซ้ายแสดงระดับความเพียงพอ · แตะเพื่อดูรายละเอียด</p>
+      </div></div>
+      <div id="c-schem"></div>
+    </div>
+  </div>
+
+  <div class="grid g-23">
+    <div class="plate">
+      <p class="eyebrow">น้ำต้นทุน</p>
+      <h3>ปริมาณน้ำใช้การได้รวม เทียบเกณฑ์ปฏิบัติการอ่างเก็บน้ำ</h3>
+      <p class="note">เขื่อนศรีนครินทร์ + เขื่อนวชิราลงกรณ · ปี 2569 พร้อมพยากรณ์ ก.ย.–ธ.ค. จากแบบจำลอง AI</p>
+      <div id="c-rule"></div>
+    </div>
+    <div class="plate">
+      <p class="eyebrow">ตัวชี้วัด</p>
+      <h3>สถานะเทียบเป้าหมายแผนแม่บท</h3>
+      <p class="note">ปรับปรุงช่วงที่ 1 พ.ศ. 2566–2580</p>
+      <div class="tbl-scroll"><table class="data" style="min-width:0"><thead><tr>
+        <th>ตัวชี้วัด</th><th>ปัจจุบัน</th><th>เป้าหมาย</th></tr></thead><tbody>
+        ${kpis.map(k=>`<tr><td>${k[0]}</td><td class="n">${k[1]}</td>
+          <td class="n" style="color:var(--ink-3)">${k[2]}</td></tr>`).join('')}
+      </tbody></table></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- แผงที่ 2: ความต้องการ & น้ำขาดแคลน ---------- */
+function panelDemand(){
+  const yr=SECTORS.map(s=>({...s,t:s.v.reduce((a,b)=>a+b,0)}));
+  return `
+  <div class="grid" style="margin-bottom:14px">
+    <div class="plate">
+      <div class="plate-head">
+        <div>
+          <p class="eyebrow">ความต้องการใช้น้ำ · WEAP Water Demand</p>
+          <h3>ความต้องการน้ำรายเดือนแยกตามกิจกรรม</h3>
+          <p class="note">รวมทั้งปี ${nice(YEAR_TOT)} ล้าน ลบ.ม. · ตัวเลขบนแท่งคือความต้องการรวมรายเดือน</p>
+        </div>
+        <div class="seg" id="seg-dem">
+          <button aria-pressed="true" data-v="chart">กราฟ</button>
+          <button aria-pressed="false" data-v="table">ตาราง</button>
+        </div>
+      </div>
+      <div id="c-dem"></div>
+      <div id="t-dem" hidden class="tbl-scroll"></div>
+    </div>
+  </div>
+
+  <div class="grid g-23" style="margin-bottom:14px">
+    <div class="plate">
+      <p class="eyebrow">น้ำขาดแคลน · WEAP Unmet Demand</p>
+      <h3>ปริมาณน้ำขาดแคลนรายเดือน — แผนปัจจุบัน เทียบ AI-Optimized</h3>
+      <p class="note">การจัดสรรที่ AI เสนอลดน้ำขาดแคลนทั้งปีจาก 612 เหลือ 268 ล้าน ลบ.ม. (ลดลง 56%)</p>
+      <div id="c-unmet"></div>
+    </div>
+    <div class="plate">
+      <p class="eyebrow">สรุปรายกิจกรรม</p>
+      <h3>ความต้องการน้ำทั้งปีแยกกิจกรรม</h3>
+      <p class="note">หน่วย: ล้าน ลบ.ม./ปี</p>
+      <div class="tbl-scroll"><table class="data" style="min-width:0"><thead><tr>
+        <th>กิจกรรม</th><th>ปริมาณ</th><th>สัดส่วน</th></tr></thead><tbody>
+        ${yr.map(s=>`<tr><td><span class="swatch" style="background:${s.c}"></span>${s.n}</td>
+          <td class="n">${nice(s.t)}</td><td class="n" style="color:var(--ink-2)">${(s.t/YEAR_TOT*100).toFixed(1)}%</td></tr>`).join('')}
+        <tr style="font-weight:600"><td>รวม</td><td class="n">${nice(YEAR_TOT)}</td><td class="n">100.0%</td></tr>
+      </tbody></table></div>
+    </div>
+  </div>
+
+  <div class="plate">
+    <p class="eyebrow">ความเพียงพอรายพื้นที่ · WEAP Demand Site Coverage</p>
+    <h3>ความเพียงพอของการส่งน้ำรายโครงการ</h3>
+    <p class="note">โซนกำแพงแสนและสองพี่น้องคือคอขวดของลุ่มน้ำ — เป็นจุดที่การปรับแผนด้วย AI ให้ผลตอบแทนสูงที่สุด</p>
+    <div id="c-cov"></div>
+  </div>`;
+}
+
+/* ---------- แผงที่ 3: พยากรณ์ด้วย AI ---------- */
+function panelForecast(){
+  const skill=[
+    ['น้ำท่าไหลเข้าอ่าง ล่วงหน้า 7 วัน','LSTM + ฝนกริด','NSE 0.86','MAE 12.4 ลบ.ม./วิ'],
+    ['น้ำท่าไหลเข้าอ่าง ล่วงหน้า 90 วัน','Transformer + ENSO','NSE 0.71','MAE 31.8 ลบ.ม./วิ'],
+    ['ความต้องการน้ำภาคเกษตร','LightGBM + NDVI','MAPE 6.8%','R² 0.93'],
+    ['ความเค็มรายวัน 3 สถานี','LSTM + สัญญาณน้ำขึ้นลง','R² 0.91','RMSE 0.09 g/L'],
+    ['Surrogate model แทน WEAP','Gradient Boosting','R² 0.985','เร็วขึ้น 4,200×']
+  ];
+  const cards=[
+    {e:'ฝนคาดการณ์ ก.ย.–พ.ย.',v:'812',u:'มม.',f:'ต่ำกว่าค่าปกติ 14%',p:'warn',pt:'ต่ำกว่าค่าเฉลี่ย 30 ปี'},
+    {e:'ดัชนี ONI (ENSO)',v:'+0.8',u:'°C',f:'เอลนีโญกำลังอ่อน',p:'warn',pt:'เพิ่มความเสี่ยงแล้ง'},
+    {e:'ความต้องการน้ำนาปรัง 2569/70',v:'2,840',u:'ล้าน ลบ.ม.',f:'พื้นที่คาดการณ์ 1.42 ล้านไร่',p:'serious',pt:'เกินน้ำต้นทุนที่จัดสรรได้'}
+  ];
+  return `
+  <div class="grid g-23" style="margin-bottom:14px">
+    <div class="plate">
+      <p class="eyebrow">พยากรณ์น้ำต้นทุน</p>
+      <h3>ปริมาณน้ำไหลเข้าอ่างเก็บน้ำรวม — ย้อนหลัง 8 สัปดาห์ และพยากรณ์ 12 สัปดาห์</h3>
+      <p class="note">แถบสีคือช่วงความเชื่อมั่น 80% (P10–P90) ซึ่งเป็นข้อมูลนำเข้าให้ WEAP รันสถานการณ์ต่อ</p>
+      <div id="c-inflow"></div>
+    </div>
+    <div class="plate">
+      <div class="plate-head"><div>
+        <p class="eyebrow">ความน่าเชื่อถือของแบบจำลอง</p>
+        <h3>ความแม่นยำที่ตรวจพิสูจน์แล้ว</h3>
+        <p class="note">สอบเทียบด้วยข้อมูล พ.ศ. 2555–2568 ตรวจพิสูจน์แบบ walk-forward</p>
+      </div></div>
+      <div class="tbl-scroll"><table class="data" style="min-width:0"><thead><tr>
+        <th>แบบจำลอง</th><th>ค่าหลัก</th><th>ค่ารอง</th></tr></thead><tbody>
+        ${skill.map(r=>`<tr><td>${r[0]}<br><span style="font-size:11.5px;color:var(--ink-3)">${r[1]}</span></td>
+          <td class="n">${r[2]}</td><td class="n" style="color:var(--ink-2)">${r[3]}</td></tr>`).join('')}
+      </tbody></table></div>
+      <p class="note" style="margin:11px 0 0">ทุกค่าพยากรณ์ที่แสดงบนหน้าจอจะกำกับช่วงความเชื่อมั่นเสมอ และผู้ใช้เปิดดูที่มาของการคำนวณได้</p>
+    </div>
+  </div>
+
+  <div class="grid g3" style="margin-bottom:14px">
+    ${cards.map(c=>`<div class="plate">
+      <p class="eyebrow">${c.e}</p>
+      <div class="val num" style="font-size:30px;font-weight:500;letter-spacing:-.02em">${c.v} <small style="font-size:13px;color:var(--ink-2);font-weight:400">${c.u}</small></div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin:2px 0 9px">${c.f}</div>
+      ${pill(c.p,c.pt)}
+    </div>`).join('')}
+  </div>
+
+  <div class="plate">
+    <div class="plate-head"><div>
+      <span class="ai-tag">${AIICON} ข้อสังเกตจากแบบจำลอง</span>
+      <h3 style="margin-top:7px">สิ่งที่ AI อ่านได้จากพยากรณ์ชุดนี้</h3>
+    </div></div>
+    <div class="grid g3" style="margin-top:11px">
+      <div class="rec"><h4>ฤดูฝนปีนี้จะจบเร็วกว่าปกติราว 2 สัปดาห์</h4>
+        <p>น้ำไหลเข้าอ่างลดต่ำกว่า 100 ล้าน ลบ.ม./สัปดาห์ ตั้งแต่สัปดาห์ที่ 8 ของการพยากรณ์ ซึ่งเร็วกว่าค่าเฉลี่ย 5 ปี</p>
+        <div class="conf">ความเชื่อมั่น <span class="bar"><i style="width:74%"></i></span> 74%</div></div>
+      <div class="rec"><h4>น้ำต้นทุนต้นฤดูแล้งมีโอกาส 22% ที่จะต่ำกว่า 7,500 ล้าน ลบ.ม.</h4>
+        <p>หากเกิดขึ้นจริงจะต้องจำกัดพื้นที่นาปรังลงประมาณ 25% เพื่อรักษาน้ำอุปโภคบริโภคและการผลักดันน้ำเค็ม</p>
+        <div class="conf">ความเชื่อมั่น <span class="bar"><i style="width:68%"></i></span> 68%</div></div>
+      <div class="rec"><h4>ความต้องการน้ำนาปรังที่เกษตรกรวางแผนไว้เกินน้ำต้นทุน 410 ล้าน ลบ.ม.</h4>
+        <p>ประเมินจากพื้นที่เตรียมแปลงที่ตรวจพบด้วยภาพดาวเทียม ควรสื่อสารกับกลุ่มผู้ใช้น้ำก่อนเริ่มฤดูเพาะปลูก</p>
+        <div class="conf">ความเชื่อมั่น <span class="bar"><i style="width:81%"></i></span> 81%</div></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- แผงที่ 4: ห้องทดลองทางเลือก ---------- */
+function panelScenario(){
+  return `
+  <div class="plate" style="margin-bottom:14px">
+    <div class="plate-head">
+      <div>
+        <p class="eyebrow">เปรียบเทียบทางเลือก · WEAP Scenario</p>
+        <h3>ห้องทดลองทางเลือกการจัดสรรน้ำ</h3>
+        <p class="note">เลือกทางเลือกเพื่อดูผลลัพธ์ที่แบบจำลองคำนวณได้ · ทุกทางเลือกรันบนโครงข่าย WEAP ชุดเดียวกัน</p>
+      </div>
+      <div class="seg" id="seg-scen">
+        ${SCEN.map((s,i)=>`<button aria-pressed="${i===1}" data-i="${i}">${s.id}</button>`).join('')}
+      </div>
+    </div>
+    <div id="scen-name" style="font-family:'Bai Jamjuree',sans-serif;font-size:17px;font-weight:600;margin:4px 0 12px"></div>
+    <div class="grid g3" id="scen-kpi" style="gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:4px;overflow:hidden"></div>
+  </div>
+
+  <div class="grid g-32" style="margin-bottom:14px">
+    <div class="plate">
+      <p class="eyebrow">การแลกได้แลกเสีย</p>
+      <h3>น้ำขาดแคลนภาคเกษตร เทียบ วันที่ความเค็มเกินเกณฑ์</h3>
+      <p class="note">มุมล่างซ้ายคือผลลัพธ์ที่ดีที่สุดสำหรับทั้งสองเป้าหมายพร้อมกัน</p>
+      <div id="c-trade"></div>
+    </div>
+    <div class="plate">
+      <p class="eyebrow">ตารางเปรียบเทียบ</p>
+      <h3>ผลลัพธ์ทุกทางเลือก</h3>
+      <p class="note">แถวที่ถูกเน้นคือทางเลือกที่กำลังเลือกอยู่</p>
+      <div class="tbl-scroll"><table class="data" id="scen-tbl"><thead><tr>
+        <th>ทางเลือก</th><th>น้ำขาดแคลน<br>ล้าน ลบ.ม./ปี</th><th>ความเพียงพอ<br>%</th>
+        <th>วันความเค็ม<br>เกินเกณฑ์</th><th>น้ำต้นทุนคงเหลือ<br>1 พ.ค. 70</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="plate">
+    <div class="plate-head"><div>
+      <span class="ai-tag">${AIICON} ข้อเสนอเชิงปฏิบัติ</span>
+      <h3 style="margin-top:7px">มาตรการที่ AI เสนอสำหรับ 14 วันข้างหน้า</h3>
+      <p class="note">ทุกข้อผ่านการตรวจสอบซ้ำด้วยแบบจำลอง WEAP เต็มรูปแบบแล้ว ไม่ได้มาจาก surrogate model เพียงอย่างเดียว</p>
+    </div></div>
+    <div class="grid g3" style="margin-top:11px">
+      <div class="rec"><h4>เพิ่มการระบายเขื่อนวชิราลงกรณ 12 → 18 ล้าน ลบ.ม./วัน ช่วง 2–6 ก.ย.</h4>
+        <p>ตรงกับช่วงน้ำเกิด ทำให้ลิ่มความเค็ม 2 g/L ถอยกลับสู่ระยะ 15–17 กม. ซึ่งอยู่ในเขตน้ำกร่อยเป้าหมาย</p>
+        <div class="conf">ความเชื่อมั่น <span class="bar"><i style="width:88%"></i></span> 88%</div>
+        <dl class="kv"><dt>ผลต่อความเพียงพอเกษตร</dt><dd>−0.4 จุด</dd><dt>ลดวันเกินเกณฑ์</dt><dd>−4 วัน</dd></dl></div>
+      <div class="rec"><h4>ลดการส่งน้ำคลองสายใหญ่ฝั่งขวา 8% ระหว่าง 1–14 ก.ย.</h4>
+        <p>โซนฝั่งขวามีความเพียงพอสูงกว่าเกณฑ์อยู่แล้ว (93–95%) การลดชั่วคราวจึงกระทบน้อยที่สุดต่อภาพรวม</p>
+        <div class="conf">ความเชื่อมั่น <span class="bar"><i style="width:82%"></i></span> 82%</div>
+        <dl class="kv"><dt>น้ำที่สำรองได้</dt><dd>6.1 ล้าน ลบ.ม.</dd><dt>โซนที่ได้ประโยชน์</dt><dd>ท้ายน้ำ + ระบบนิเวศ</dd></dl></div>
+      <div class="rec"><h4>เลื่อนรอบเวรส่งน้ำโซนกำแพงแสน–นครปฐม ออกไป 10 วัน</h4>
+        <p>ปรับให้ตรงกับช่วงฝนคาดการณ์ 6–12 ก.ย. ลดการใช้น้ำชลประทานโดยไม่กระทบผลผลิต</p>
+        <div class="conf">ความเชื่อมั่น <span class="bar"><i style="width:76%"></i></span> 76%</div>
+        <dl class="kv"><dt>ความเพียงพอโซนนี้</dt><dd>85.3% → 91.0%</dd><dt>ความเสี่ยง</dt><dd>ขึ้นกับฝนตกจริง</dd></dl></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- แผงที่ 5: น้ำเค็มและระบบนิเวศ ---------- */
+function panelSalinity(){
+  const eco=[
+    ['ท้ายเขื่อนแม่กลอง','45','52','good','เพียงพอ'],
+    ['ปตร.บางนกแขวก','28','31','good','เพียงพอ'],
+    ['คลองดำเนินสะดวก','12','10','warn','ต่ำกว่าเกณฑ์ 17%'],
+    ['ปากแม่น้ำแม่กลอง','35','38','good','เพียงพอ']
+  ];
+  return `
+  <div class="grid g-23" style="margin-bottom:14px">
+    <div class="plate">
+      <p class="eyebrow">คุณภาพน้ำ · การรุกล้ำของน้ำเค็ม</p>
+      <h3>ความเค็ม 3 สถานีหลัก — ย้อนหลัง 23 วัน และพยากรณ์ 7 วัน</h3>
+      <p class="note">เส้นประคือช่วงพยากรณ์ · ยอดคลื่นแต่ละลูกคือรอบน้ำเกิด ซึ่งเป็นช่วงที่ต้องเตรียมน้ำผลักดันล่วงหน้า</p>
+      <div id="c-sal"></div>
+    </div>
+    <div class="plate">
+      <p class="eyebrow">การผลักดันน้ำเค็ม</p>
+      <h3>สถานะปฏิบัติการวันนี้</h3>
+      <p class="note">ข้อมูล ณ 27 ส.ค. 2569 06:00 น.</p>
+      <dl class="kv" style="font-size:13.5px;gap:9px 14px;margin-bottom:13px">
+        <dt>อัตราการระบายท้ายเขื่อนแม่กลอง</dt><dd>52.0 ลบ.ม./วิ</dd>
+        <dt>เกณฑ์ขั้นต่ำเพื่อผลักดันน้ำเค็ม</dt><dd>45.0 ลบ.ม./วิ</dd>
+        <dt>ปริมาณน้ำที่ใช้ผลักดันสะสมปีนี้</dt><dd>348 ล้าน ลบ.ม.</dd>
+        <dt>รอบน้ำเกิดถัดไป</dt><dd>2–6 ก.ย. 2569</dd>
+        <dt>ปริมาณน้ำที่ต้องเตรียมล่วงหน้า</dt><dd>34 ล้าน ลบ.ม.</dd>
+      </dl>
+      ${pill('warn','ความเค็มเกินเกณฑ์เฝ้าระวังต่อเนื่อง 3 วัน')}
+      <p class="note" style="margin-top:12px">AI ตรวจพบว่าอัตราการเพิ่มของความเค็มในรอบนี้สูงกว่ารอบก่อน 18% ซึ่งสัมพันธ์กับน้ำท่าต้นทุนที่ลดลง จึงเสนอให้เพิ่มการระบายล่วงหน้า 3 วันก่อนน้ำเกิด แทนการเพิ่มเมื่อความเค็มขึ้นแล้ว</p>
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="plate">
+      <p class="eyebrow">เขตน้ำกร่อย</p>
+      <h3>ตำแหน่งลิ่มความเค็ม 2 g/L</h3>
+      <p class="note">การรักษาเขตน้ำกร่อยคือการรักษา “ช่วง” ไม่ใช่การผลักน้ำเค็มออกให้ไกลที่สุด — ไกลเกินไปกระทบดอนหอยหลอด ป่าชายเลน และการเพาะเลี้ยงสัตว์น้ำ</p>
+      <div id="c-iso"></div>
+      <div style="margin-top:8px">${pill('good','อยู่ในเขตเป้าหมาย 8–18 กม.')}</div>
+    </div>
+    <div class="plate">
+      <p class="eyebrow">น้ำเพื่อระบบนิเวศ · WEAP Instream Flow Requirement</p>
+      <h3>การไหลขั้นต่ำเพื่อระบบนิเวศ</h3>
+      <p class="note">หน่วย: ลูกบาศก์เมตร/วินาที</p>
+      <div class="tbl-scroll"><table class="data" style="min-width:0"><thead><tr>
+        <th>จุดควบคุม</th><th>เกณฑ์</th><th>ปัจจุบัน</th><th>สถานะ</th></tr></thead><tbody>
+        ${eco.map(r=>`<tr><td>${r[0]}</td><td class="n" style="color:var(--ink-3)">${r[1]}</td>
+          <td class="n">${r[2]}</td><td style="text-align:right">${pill(r[3],r[4])}</td></tr>`).join('')}
+      </tbody></table></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- แผงที่ 6: แนวคิดและสถาปัตยกรรม ---------- */
+function panelConcept(){
+  const principles=[
+    ['จบที่การตัดสินใจ ไม่ใช่จบที่กราฟ','ทุกมุมมองต้องตอบให้ได้ว่า “สัปดาห์นี้ต้องทำอะไร” หน้าแรกจึงเป็นรายการสิ่งที่ต้องตัดสินใจ ไม่ใช่แผนที่หรือกราฟรวม'],
+    ['AI ต้องบอกความไม่แน่นอนเสมอ','ทุกค่าพยากรณ์มาพร้อมช่วงความเชื่อมั่น และทุกข้อเสนอมีระดับความเชื่อมั่นกำกับ ผู้ตัดสินใจจึงรู้ว่าควรเชื่อมากน้อยเพียงใด'],
+    ['แยก “เร็ว” ออกจาก “แม่น”','ใช้ surrogate model ค้นหาทางเลือกนับหมื่นชุดภายในไม่กี่วินาที แล้วนำเฉพาะทางเลือกที่ดีที่สุดกลับไปตรวจสอบซ้ำด้วย WEAP เต็มรูปแบบก่อนเสนอ'],
+    ['สีบนหน้าจอนี้มีความหมายเสมอ','ส่วนประกอบของหน้าจอใช้โทนเทาล้วน สีจะปรากฏเฉพาะเมื่อเป็นข้อมูลหรือเป็นสถานะเท่านั้น ผู้ใช้จึงกวาดสายตาหาสิ่งผิดปกติได้ทันที'],
+    ['คนอนุมัติ ไม่ใช่ AI','ระบบทำหน้าที่เสนอและอธิบาย การอนุมัติเป็นของคณะกรรมการลุ่มน้ำ และทุกการตัดสินใจถูกบันทึกพร้อมเหตุผลไว้ย้อนดูได้'],
+    ['ตัวชี้วัดต้องผูกกับแผนแม่บท','ตัวชี้วัดบนหน้าจอเป็นตัวเดียวกับที่ใช้ติดตามแผนแม่บทลุ่มน้ำแม่กลอง เพื่อไม่ให้เกิดตัวเลขสองชุดที่ขัดกัน']
+  ];
+  const map=[
+    ['น้ำขาดแคลน (ล้าน ลบ.ม.)','Unmet Demand','ผลรวมรายเดือนของทุก Demand Site'],
+    ['ความเพียงพอ (%)','Demand Site Coverage','Supply Delivered ÷ Water Demand × 100'],
+    ['ความน่าเชื่อถือ (%)','Reliability','สัดส่วนเดือนที่ Coverage เท่ากับ 100%'],
+    ['ความรุนแรงเมื่อขาดแคลน','Vulnerability','ค่าเฉลี่ยการขาดแคลนเฉพาะเดือนที่ขาด'],
+    ['น้ำต้นทุน (ล้าน ลบ.ม.)','Reservoir Storage Volume','ผลรวม 2 เขื่อนหลัก หักปริมาตรก้นอ่าง'],
+    ['การไหลในลำน้ำ (ลบ.ม./วิ)','Streamflow','ค่า ณ จุดควบคุมที่กำหนดไว้ในโครงข่าย'],
+    ['ความเค็ม (กรัม/ลิตร)','Streamflow + แบบจำลอง AI','WEAP ให้ปริมาณน้ำ แบบจำลอง AI แปลงเป็นความเค็ม'],
+    ['ผลิตภาพการใช้น้ำ (บาท/ลบ.ม.)','Supply Delivered','คูณค่าทางเศรษฐกิจรายกิจกรรม (คำนวณนอก WEAP)'],
+    ['ความเสมอภาคระหว่างโซน (Gini)','Coverage รายโซน','คำนวณนอก WEAP จากค่า Coverage ทุกโซน']
+  ];
+  const phases=[
+    ['ระยะที่ 1 · เดือน 0–4','วางรากฐานข้อมูลและมุมมองพื้นฐาน','จัดทำท่อข้อมูลอัตโนมัติจากโทรมาตรและอ่างเก็บน้ำ เชื่อม WEAP ผ่าน API ให้รันได้อัตโนมัติ และเปิดใช้ 2 มุมมองแรก คือ ภาพรวมลุ่มน้ำ และความต้องการน้ำ โดยใช้ผลจำลองที่มีอยู่แล้ว'],
+    ['ระยะที่ 2 · เดือน 4–9','เพิ่มความสามารถในการพยากรณ์','ฝึกและตรวจพิสูจน์แบบจำลองพยากรณ์น้ำท่า ความต้องการน้ำภาคเกษตร และความเค็มรายวัน พร้อมกำหนดเกณฑ์การแจ้งเตือนอัตโนมัติร่วมกับศูนย์ปฏิบัติการ'],
+    ['ระยะที่ 3 · เดือน 9–15','เปิดห้องทดลองทางเลือก','สร้าง surrogate model ของ WEAP และระบบหาค่าเหมาะที่สุดหลายวัตถุประสงค์ เพื่อให้คณะกรรมการเปรียบเทียบทางเลือกได้แบบทันที พร้อมกลไกตรวจสอบซ้ำด้วย WEAP'],
+    ['ระยะที่ 4 · เดือน 15–20','ขยายผลและถ่ายทอด','เชื่อมต่อกับศูนย์ปฏิบัติการน้ำ อบรมผู้ใช้ทั้งสองกลุ่ม กำหนดกระบวนการทบทวนและสอบเทียบแบบจำลองประจำปี และส่งมอบคู่มือการใช้งาน']
+  ];
+  const risks=[
+    'ข้อมูลโทรมาตรขาดหายเป็นเรื่องปกติ — ต้องมีการเติมค่าที่ตรวจสอบได้ และแสดงดัชนีคุณภาพข้อมูลบนหน้าจอ ไม่ใช่ซ่อนไว้',
+    'แบบจำลองพยากรณ์เสื่อมความแม่นยำตามเวลา — ต้องมีการตรวจสอบย้อนหลังอัตโนมัติทุกเดือน และสอบเทียบใหม่อย่างน้อยปีละครั้ง',
+    'การหาค่าเหมาะที่สุดอาจผลักภาระไปยังพื้นที่กลุ่มเดิมซ้ำ ๆ — จึงต้องมีตัวชี้วัดความเสมอภาค (Gini ของ Coverage) เป็นเงื่อนไขบังคับ ไม่ใช่ตัวเลือก',
+    'ทางเลือกที่ AI เสนอต้องผ่านเวทีผู้มีส่วนได้ส่วนเสียก่อนนำไปปฏิบัติ ระบบนี้เป็นเครื่องมือประกอบการหารือ ไม่ใช่ผู้ตัดสิน',
+    'ต้องกำหนดสิทธิ์การเข้าถึงและการเปิดเผยข้อมูลให้ชัดเจน โดยเฉพาะข้อมูลรายแปลงและข้อมูลผู้ใช้น้ำรายราย'
+  ];
+  return `
+  <div class="plate" style="margin-bottom:14px">
+    <p class="eyebrow">หลักคิดในการออกแบบ</p>
+    <h3>ข้อตกลง 6 ข้อที่ใช้ตัดสินทุกรายละเอียดบนหน้าจอ</h3>
+    <div class="grid g3" style="margin-top:13px">
+      ${principles.map(p=>`<div class="rec"><h4>${p[0]}</h4><p>${p[1]}</p></div>`).join('')}
+    </div>
+  </div>
+
+  <div class="plate" style="margin-bottom:14px">
+    <p class="eyebrow">สถาปัตยกรรมระบบ</p>
+    <h3>จากข้อมูลดิบถึงการตัดสินใจ — 4 ชั้น</h3>
+    <p class="note">หัวใจของการออกแบบคือชั้นที่ 3 ซึ่งไม่ได้แทนที่ WEAP แต่ทำให้ WEAP ถูกใช้ได้เร็วพอสำหรับการตัดสินใจรายสัปดาห์</p>
+    <div id="c-arch"></div>
+  </div>
+
+  <div class="grid g2" style="margin-bottom:14px">
+    <div class="plate">
+      <p class="eyebrow">การเชื่อมโยงข้อมูล</p>
+      <h3>ตัวชี้วัดบนหน้าจอ มาจากผลลัพธ์ WEAP ตัวใด</h3>
+      <p class="note">ทุกตัวเลขต้องสาวกลับไปยังผลลัพธ์ของแบบจำลองได้เสมอ</p>
+      <div class="tbl-scroll"><table class="data"><thead><tr>
+        <th>ตัวชี้วัด</th><th>ผลลัพธ์ WEAP</th><th>วิธีคำนวณ</th></tr></thead><tbody>
+        ${map.map(r=>`<tr><td>${r[0]}</td><td style="text-align:left;font-family:'IBM Plex Mono',monospace;font-size:12px">${r[1]}</td>
+          <td style="text-align:left;white-space:normal;color:var(--ink-2);font-size:12px">${r[2]}</td></tr>`).join('')}
+      </tbody></table></div>
+    </div>
+    <div class="plate">
+      <p class="eyebrow">ข้อควรระวัง</p>
+      <h3>สิ่งที่ต้องออกแบบรับมือตั้งแต่ต้น</h3>
+      <p class="note">ประเด็นเหล่านี้ทำให้ระบบลักษณะนี้ล้มเหลวได้บ่อยกว่าปัญหาทางเทคนิค</p>
+      <ul class="prose" style="margin-top:11px;padding-left:20px">
+        ${risks.map(r=>`<li style="margin-bottom:9px">${r}</li>`).join('')}
+      </ul>
+    </div>
+  </div>
+
+  <div class="plate">
+    <p class="eyebrow">แผนการพัฒนา</p>
+    <h3>ลำดับการพัฒนา 4 ระยะ ภายใน 20 เดือน</h3>
+    <p class="note">แต่ละระยะส่งมอบสิ่งที่ใช้งานได้จริง ไม่ต้องรอให้ครบทุกส่วนจึงจะเริ่มใช้</p>
+    <div style="margin-top:6px">
+      ${phases.map(p=>`<div class="phase"><span class="pn">${p[0]}</span>
+        <div><h4>${p[1]}</h4><p>${p[2]}</p></div></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   ประกอบหน้าจอ
+   ============================================================ */
+const TABS=[
+  {n:'ภาพรวมลุ่มน้ำ',        build:panelOverview},
+  {n:'ความต้องการ & น้ำขาดแคลน', build:panelDemand},
+  {n:'พยากรณ์ด้วย AI',       build:panelForecast},
+  {n:'ห้องทดลองทางเลือก',    build:panelScenario},
+  {n:'น้ำเค็ม & ระบบนิเวศ',   build:panelSalinity},
+  {n:'แนวคิด & สถาปัตยกรรม', build:panelConcept}
+];
+/* ============================================================
+   ชั้นเชื่อมต่อข้อมูล (Data layer)
+   ------------------------------------------------------------
+   ลำดับการทำงาน
+     1) พยายามโหลด DATA_URL ก่อนเสมอ
+     2) ถ้าโหลดไม่ได้ / รูปแบบไม่ถูกต้อง จะถอยกลับไปใช้ชุดข้อมูลจำลองด้านบน
+        (หน้าเว็บจึงไม่มีวันพัง แม้ระบบต้นทางล่ม)
+   การต่อข้อมูลจริง
+     - วาง data.json ไว้ข้าง index.html  → ใช้ค่าเริ่มต้นได้เลย
+     - หรือเปลี่ยน DATA_URL เป็น URL ของ API  → API ต้องเป็น https และตั้ง
+       Access-Control-Allow-Origin ให้โดเมนที่ใช้เผยแพร่หน้านี้
+     - ห้ามใส่ API key ไว้ในไฟล์นี้ ถ้า repository เป็นสาธารณะ (ดู README)
+   ============================================================ */
+const DATA_URL = 'data.json';
+const REFRESH_MINUTES = 0;   /* 0 = ไม่ดึงซ้ำ · ใส่ 15 เพื่อรีเฟรชทุก 15 นาที */
+
+/* ชุดข้อมูลที่ data.json เขียนทับได้ — คีย์ใน JSON ต้องตรงกับชื่อเหล่านี้ */
+const SETTERS = {
+  SECTORS:  v=>SECTORS=v,   UNMET_BAU:v=>UNMET_BAU=v, UNMET_AI:v=>UNMET_AI=v,
+  URC:      v=>URC=v,       LRC:      v=>LRC=v,       ACT:      v=>ACT=v,
+  F10:      v=>F10=v,       F50:      v=>F50=v,       F90:      v=>F90=v,
+  SITES:    v=>SITES=v,     SCEN:     v=>SCEN=v,      ZONES:    v=>ZONES=v,
+  INFLOW_OBS:v=>INFLOW_OBS=v, INF10:  v=>INF10=v,     INF50:    v=>INF50=v, INF90:v=>INF90=v,
+  SAL_ST:   v=>SAL_ST=v,    SAL:      v=>SAL=v,       SAL_FC_FROM:v=>SAL_FC_FROM=v,
+  RESERVOIRS:v=>RESERVOIRS=v
+};
+
+function applyData(d){
+  let n=0;
+  for(const k in SETTERS){ if(d[k]!=null){ SETTERS[k](d[k]); n++; } }
+  if(d.SAL==null) SAL=null;   /* ไม่ได้ส่งชุดความเค็มมา → สร้างใหม่จากสถานีที่มี */
+  return n;
+}
+
+async function loadData(){
+  try{
+    const res = await fetch(DATA_URL,{cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const d = await res.json();
+    const n = applyData(d);
+    if(!n) throw new Error('ไม่พบชุดข้อมูลที่รู้จักในไฟล์');
+    return {live:true, asOf:d.asOf||null, fields:n};
+  }catch(err){
+    console.info('[แม่กลอง DSS] ใช้ข้อมูลจำลองในตัว —', err.message);
+    return {live:false, reason:err.message};
+  }
+}
+
+function stampSource(src){
+  const badge=document.getElementById('srcBadge'), stamp=document.getElementById('srcStamp');
+  if(!src.live) return;
+  badge.textContent='ข้อมูลจริง · '+src.fields+' ชุดข้อมูล';
+  badge.style.borderStyle='solid';
+  if(src.asOf) stamp.innerHTML='ข้อมูล ณ <b>'+src.asOf+'</b>';
+}
+
+async function build(){
+  const src = await loadData();
+  recompute();
+  stampSource(src);
+  buildStrip();
+  const tabHost=document.getElementById('tabs'), panelHost=document.getElementById('panels');
+  TABS.forEach((t,i)=>{
+    const b=document.createElement('button');
+    b.className='tab';b.type='button';b.role='tab';b.id='tab-'+i;
+    b.setAttribute('aria-selected',i===0);b.setAttribute('aria-controls','panel-'+i);
+    b.innerHTML=`<span class="n">${String(i+1).padStart(2,'0')}</span>${t.n}`;
+    b.addEventListener('click',()=>select(i));
+    tabHost.appendChild(b);
+    const p=document.createElement('div');
+    p.className='panel';p.id='panel-'+i;p.setAttribute('role','tabpanel');p.setAttribute('aria-labelledby','tab-'+i);
+    p.hidden=i!==0;p.innerHTML=t.build();
+    panelHost.appendChild(p);
+  });
+  document.getElementById('c-schem').appendChild(chartSchematic());
+  document.getElementById('c-rule').appendChild(chartRuleCurve());
+  document.getElementById('c-dem').appendChild(chartDemand());
+  document.getElementById('c-unmet').appendChild(chartUnmet());
+  document.getElementById('c-cov').appendChild(chartCoverage());
+  document.getElementById('c-inflow').appendChild(chartInflow());
+  document.getElementById('c-trade').appendChild(chartTradeoff());
+  document.getElementById('c-sal').appendChild(chartSalinity());
+  document.getElementById('c-iso').appendChild(chartIsohaline());
+  document.getElementById('c-arch').appendChild(chartArch());
+  buildDemandTable();
+  wireDemandToggle();
+  wireScenario();
+  wireCopilot();
+  const h=location.hash.match(/^#t([0-5])$/);   /* เปิดแท็บตามลิงก์ที่ส่งต่อกันได้ */
+  if(h) select(+h[1]);
+  if(REFRESH_MINUTES>0) setInterval(()=>location.reload(), REFRESH_MINUTES*60000);
+}
+function select(i){
+  history.replaceState(null,'','#t'+i);
+  document.querySelectorAll('.tab').forEach((b,j)=>b.setAttribute('aria-selected',j===i));
+  document.querySelectorAll('.panel').forEach((p,j)=>p.hidden=j!==i);
+  hideTip();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ตารางแทนกราฟ (ทางเลือกสำหรับผู้ที่แยกสีได้ยาก และสำหรับการคัดลอกตัวเลข) */
+function buildDemandTable(){
+  const host=document.getElementById('t-dem');
+  host.innerHTML=`<table class="data" style="min-width:760px"><thead><tr><th>กิจกรรม</th>
+    ${MO.map(m=>`<th>${m}</th>`).join('')}<th>รวม</th></tr></thead><tbody>
+    ${SECTORS.map(s=>`<tr><td><span class="swatch" style="background:${s.c}"></span>${s.n}</td>
+      ${s.v.map(v=>`<td class="n">${nice(v)}</td>`).join('')}
+      <td class="n" style="font-weight:600">${nice(s.v.reduce((a,b)=>a+b,0))}</td></tr>`).join('')}
+    <tr style="font-weight:600"><td>รวมทุกกิจกรรม</td>${MONTH_TOT.map(v=>`<td class="n">${nice(v)}</td>`).join('')}
+      <td class="n">${nice(YEAR_TOT)}</td></tr>
+    <tr><td style="color:var(--ink-2)">น้ำขาดแคลน (แผนปัจจุบัน)</td>
+      ${UNMET_BAU.map(v=>`<td class="n" style="color:var(--ink-2)">${nice(v)}</td>`).join('')}
+      <td class="n" style="color:var(--ink-2)">${nice(UNMET_BAU.reduce((a,b)=>a+b,0))}</td></tr>
+    </tbody></table>`;
+}
+function wireDemandToggle(){
+  const seg=document.getElementById('seg-dem');
+  seg.addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;
+    seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+    const table=b.dataset.v==='table';
+    document.getElementById('c-dem').hidden=table;
+    document.getElementById('t-dem').hidden=!table;
+  });
+}
+
+/* ห้องทดลองทางเลือก */
+function wireScenario(){
+  const seg=document.getElementById('seg-scen');
+  const tb=document.querySelector('#scen-tbl tbody');
+  tb.innerHTML=SCEN.map((s,i)=>`<tr data-i="${i}"><td><span class="swatch" style="background:${s.c}"></span>${s.id} · ${s.n}</td>
+    <td class="n">${nice(s.unmet)}</td><td class="n">${s.cov.toFixed(1)}</td>
+    <td class="n">${s.sal}</td><td class="n">${nice(s.carry)}</td></tr>`).join('');
+  function render(i){
+    const s=SCEN[i], base=SCEN[0];
+    document.getElementById('scen-name').textContent=s.id+' · '+s.n;
+    const d=(v,b,inv,dp=0)=>{const diff=v-b;if(i===0)return '<span style="color:var(--ink-3)">ทางเลือกอ้างอิง</span>';
+      const better=inv?diff<0:diff>0;
+      const txt2=(diff>0?'+':'−')+Math.abs(diff).toLocaleString('th-TH',{minimumFractionDigits:dp,maximumFractionDigits:dp});
+      return `<span style="color:${better?'var(--good-ink)':'var(--crit-ink)'}">${txt2} เทียบ S0</span>`;};
+    const cells=[
+      ['น้ำขาดแคลนทั้งปี',nice(s.unmet),'ล้าน ลบ.ม.',d(s.unmet,base.unmet,true)],
+      ['ความเพียงพอรวม',s.cov.toFixed(1),'%',d(s.cov,base.cov,false,1)],
+      ['วันความเค็มเกินเกณฑ์',s.sal,'วัน/ปี',d(s.sal,base.sal,true)],
+      ['มูลค่าผลผลิตที่สูญเสีย',nice(s.loss),'ล้านบาท',d(s.loss,base.loss,true)],
+      ['น้ำต้นทุนคงเหลือ 1 พ.ค. 70',nice(s.carry),'ล้าน ลบ.ม.',d(s.carry,base.carry,false)],
+      ['น้ำขาดแคลนภาคเกษตร',nice(s.agri),'ล้าน ลบ.ม.',d(s.agri,base.agri,true)]
+    ];
+    document.getElementById('scen-kpi').innerHTML=cells.map(c=>`
+      <div style="background:var(--surface);padding:13px 15px">
+        <div style="font-family:'Bai Jamjuree',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)">${c[0]}</div>
+        <div class="num" style="font-size:25px;font-weight:500;letter-spacing:-.02em;line-height:1.2">${c[1]} <small style="font-size:12.5px;color:var(--ink-2)">${c[2]}</small></div>
+        <div style="font-size:12px;margin-top:1px">${c[3]}</div>
+      </div>`).join('');
+    tb.querySelectorAll('tr').forEach((r,j)=>r.classList.toggle('hl',j===i));
+  }
+  seg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));render(+b.dataset.i);});
+  tb.addEventListener('click',e=>{const r=e.target.closest('tr');if(!r)return;
+    const i=+r.dataset.i;seg.querySelectorAll('button').forEach((x,j)=>x.setAttribute('aria-pressed',j===i));render(i);});
+  render(1);
+}
+
+/* ---------- AI Copilot (สาธิตบทสนทนา) ---------- */
+const QA=[
+ {q:'ทำไมโซนกำแพงแสน–นครปฐม ถึงขาดน้ำต่อเนื่อง?',
+  a:`<p>จากผลจำลอง WEAP ปี 2569 โซนนี้มีค่า Coverage เฉลี่ย <b>85.3%</b> ต่ำที่สุดในลุ่มน้ำ สาเหตุหลักที่แบบจำลองชี้ให้เห็นมี 3 ข้อ</p>
+     <ul><li>อยู่ปลายคลองสายใหญ่ฝั่งซ้าย จึงได้รับน้ำหลังโซนอื่นทั้งหมด</li>
+     <li>สัดส่วนพื้นที่นาปรังสูงกว่าค่าเฉลี่ยลุ่มน้ำ 22% ทำให้ความต้องการกระจุกในเดือน ก.พ.–เม.ย.</li>
+     <li>ประสิทธิภาพการส่งน้ำของคลองซอยในโซนนี้อยู่ที่ 62% ต่ำกว่าค่าเฉลี่ย 71%</li></ul>
+     <p>การเลื่อนรอบเวรออก 10 วันช่วยได้ราว 5.7 จุด แต่การแก้ที่ยั่งยืนคือการปรับปรุงคลองซอยและการปรับปฏิทินเพาะปลูก</p>
+     <div class="src">อ้างอิง: ผลจำลอง WEAP ชุด BAU-2569 · แผนแม่บทลุ่มน้ำแม่กลอง บทที่ 4 ปัญหาและอุปสรรค</div>`},
+ {q:'ถ้าไม่เพิ่มการระบายช่วงน้ำเกิด 2–6 ก.ย. จะเกิดอะไรขึ้น?',
+  a:`<p>แบบจำลองความเค็มคาดว่าที่ ปตร.บางนกแขวก ความเค็มจะขึ้นถึง <b>0.94 g/L</b> ในวันที่ 4 ก.ย. และคงอยู่เหนือเกณฑ์เฝ้าระวัง 0.5 g/L ต่อเนื่อง 6 วัน</p>
+     <ul><li>ลิ่มความเค็ม 2 g/L จะรุกขึ้นถึงระยะ กม. 8.1 ซึ่งเกือบหลุดขอบล่างของเขตน้ำกร่อยเป้าหมาย</li>
+     <li>พื้นที่สวนมะพร้าวและส้มโอในเขตอัมพวา–บางคนที ราว 12,400 ไร่ เสี่ยงได้รับผลกระทบ</li>
+     <li>สถานีสูบน้ำดิบเพื่อการประปา 2 แห่งต้องหยุดสูบชั่วคราวรวมประมาณ 3 วัน</li></ul>
+     <p>ต้นทุนของการเพิ่มการระบายคือน้ำ 34 ล้าน ลบ.ม. ซึ่งคิดเป็น 0.55% ของน้ำต้นทุนที่มีอยู่</p>
+     <div class="src">อ้างอิง: แบบจำลองความเค็ม LSTM (R² 0.91) · ผลจำลอง WEAP สถานการณ์ S0 · ข้อมูลน้ำขึ้นลง กรมอุทกศาสตร์</div>`},
+ {q:'สรุปสถานการณ์ให้คณะกรรมการลุ่มน้ำ',
+  a:`<p><b>สรุปสถานการณ์น้ำลุ่มน้ำแม่กลอง ณ 27 ส.ค. 2569</b></p>
+     <ul><li>น้ำต้นทุนรวม 2 เขื่อนหลัก 6,180 ล้าน ลบ.ม. ต่ำกว่าเกณฑ์เก็บกักต่ำสุดของเดือน 20 ล้าน ลบ.ม.</li>
+     <li>ความเพียงพอรวมทั้งลุ่มน้ำตั้งแต่ต้นปี 91.2% ต่ำกว่าเป้าหมายแผนแม่บท 3.8 จุด</li>
+     <li>โซนที่ต้องเฝ้าระวังเป็นพิเศษคือกำแพงแสน–นครปฐม (85.3%) และพนมทวน–สองพี่น้อง (90.1%)</li>
+     <li>ความเค็มที่ ปตร.บางนกแขวก เกินเกณฑ์เฝ้าระวังต่อเนื่อง 3 วัน และจะมีรอบน้ำเกิดถัดไป 2–6 ก.ย.</li>
+     <li>การปรับแผนตามที่แบบจำลองเสนอ ลดน้ำขาดแคลนทั้งปีจาก 612 เหลือ 268 ล้าน ลบ.ม. โดยใช้น้ำต้นทุนเท่าเดิม</li></ul>
+     <p>เรื่องที่ต้องขอมติสัปดาห์นี้คือการปรับลดการส่งน้ำคลองสายใหญ่ฝั่งขวา 8% ระหว่าง 1–14 ก.ย.</p>
+     <div class="src">อ้างอิง: ผลจำลอง WEAP ชุด BAU-2569 และ AI-Optimized · ข้อมูลโทรมาตรกรมชลประทาน</div>`}
+];
+function wireCopilot(){
+  const btn=document.getElementById('copBtn'), cop=document.getElementById('cop'),
+        scrim=document.getElementById('scrim'), body=document.getElementById('copBody'), f=document.getElementById('copF');
+  const add=(cls,html)=>{const d=document.createElement('div');d.className='msg '+cls;d.innerHTML=html;
+    body.appendChild(d);body.scrollTop=body.scrollHeight;return d;};
+  add('a',`<p>สวัสดีครับ ผมเชื่อมกับผลจำลอง WEAP ชุดล่าสุดและเอกสารแผนแม่บทลุ่มน้ำแม่กลองไว้แล้ว ถามเป็นภาษาไทยได้เลยครับ</p>
+    <div class="src">ตัวอย่างการสนทนาในหน้าจำลอง — คำตอบด้านล่างเป็นชุดที่เตรียมไว้เพื่อสาธิตรูปแบบการตอบ</div>`);
+  f.innerHTML=QA.map((x,i)=>`<button class="chipq" data-i="${i}">${x.q}</button>`).join('');
+  f.addEventListener('click',e=>{const b=e.target.closest('.chipq');if(!b)return;
+    const x=QA[+b.dataset.i];b.remove();
+    add('u',x.q);
+    const t=add('a','<span style="color:var(--ink-3)">กำลังค้นผลจำลอง…</span>');
+    setTimeout(()=>{t.innerHTML=x.a;body.scrollTop=body.scrollHeight;},520);});
+  const open=v=>{cop.classList.toggle('open',v);scrim.classList.toggle('open',v);
+    cop.setAttribute('aria-hidden',!v);btn.setAttribute('aria-expanded',v);};
+  btn.addEventListener('click',()=>open(true));
+  document.getElementById('copX').addEventListener('click',()=>open(false));
+  scrim.addEventListener('click',()=>open(false));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')open(false);});
+}
+
+build();
+</script>
+</body>
+</html>
