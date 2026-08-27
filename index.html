@@ -742,28 +742,6 @@ function chartSchematic(){
   return box;
 }
 
-/* ---------- 10. สถาปัตยกรรมระบบ ---------- */
-const ARCH=[
-  {t:'ชั้นข้อมูลนำเข้า', s:'Data Layer', items:['โทรมาตรระดับน้ำ–ปริมาณน้ำ (ชป./สทนช.)','ฝนกริดรายชั่วโมง (TMD, GSMaP)','ข้อมูลอ่างเก็บน้ำรายวัน 2 เขื่อนหลัก','สถานีความเค็ม–ระดับน้ำขึ้นลงอัตโนมัติ','ภาพดาวเทียม NDVI / พื้นที่เพาะปลูก (GISTDA)','ข้อมูลประชากร–อุตสาหกรรม–เศรษฐกิจ']},
-  {t:'ชั้นแบบจำลอง', s:'WEAP Core', items:['WEAP ลุ่มน้ำแม่กลอง (โครงข่าย + Demand Sites)','WEAP API / Python สำหรับรันอัตโนมัติ','ชุดสถานการณ์อ้างอิง (BAU / แผนแม่บท)','การสอบเทียบ–ตรวจพิสูจน์รายปี']},
-  {t:'ชั้นปัญญาประดิษฐ์', s:'AI Layer', items:['พยากรณ์น้ำท่า–ฝน (LSTM / Transformer)','พยากรณ์ความต้องการน้ำ (LightGBM + NDVI)','พยากรณ์ความเค็ม (LSTM + สัญญาณน้ำขึ้นลง)','Surrogate model แทน WEAP (เร็วขึ้น ~4,200 เท่า)','Multi-objective optimization (NSGA-II)','LLM Copilot แบบ RAG บนแผนแม่บท + ผลจำลอง']},
-  {t:'ชั้นการตัดสินใจ', s:'Decision Layer', items:['6 มุมมองสำหรับผู้บริหารและศูนย์ปฏิบัติการ','ระบบแจ้งเตือนอัตโนมัติตามเกณฑ์','บันทึกเหตุผลการตัดสินใจ (Decision log)','รายงานเสนอคณะกรรมการลุ่มน้ำ']}
-];
-function chartArch(){
-  const wrap=document.createElement('div');
-  wrap.style.display='grid';wrap.style.gap='0';
-  ARCH.forEach((L,i)=>{
-    const row=document.createElement('div');
-    row.style.cssText='display:grid;grid-template-columns:150px 1fr;gap:16px;padding:15px 0;border-bottom:'+(i<3?'1px solid var(--rule)':'0');
-    row.innerHTML=`<div>
-        <div style="font-family:'Bai Jamjuree',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.09em;color:var(--ink-3);text-transform:uppercase">ชั้นที่ ${i+1} · ${L.s}</div>
-        <div style="font-family:'Bai Jamjuree',sans-serif;font-size:15px;font-weight:600;margin-top:2px">${L.t}</div>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:7px">${L.items.map(x=>
-        `<span style="font-size:12.5px;background:var(--surface-2);border:1px solid var(--rule);border-radius:4px;padding:5px 10px;color:var(--ink-2)">${x}</span>`).join('')}</div>`;
-    wrap.appendChild(row);
-  });
-  return wrap;
 }
 
 /* ============================================================
